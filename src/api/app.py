@@ -1,5 +1,5 @@
 from litestar import Litestar, get, Request
-from litestar.response import Template
+from litestar.response import Template, ServerSentEvent
 from litestar.template.config import TemplateConfig
 from litestar.contrib.jinja import JinjaTemplateEngine
 from litestar.exceptions import NotFoundException
@@ -9,7 +9,8 @@ from src.core.config import settings
 from src.core.logging_config import setup_logging, logger
 import os
 import traceback
-from typing import List, Dict
+import asyncio
+from typing import List, Dict, AsyncGenerator
 
 # Initialize logging at top level
 setup_logging()
@@ -44,7 +45,7 @@ async def fetch_and_normalize(params: Dict[str, str]) -> List[Product]:
     _product_cache = products
     return products
 
-@get("/")
+@get("/", http_method=["GET", "HEAD"])
 async def index() -> Template:
     # Baseline settings from config
     params = settings.DEFAULT_PARAMS.copy()
@@ -89,6 +90,21 @@ async def product_detail(product_id: str) -> Template:
 
 from src.core.polling_manager import polling_manager
 
+@get("/stream")
+async def stream_new_products() -> ServerSentEvent:
+    """SSE endpoint that streams discovery signals to the client."""
+    async def sse_generator() -> AsyncGenerator[ServerSentEvent, None]:
+        async for queue in polling_manager.subscribe():
+            while True:
+                try:
+                    # Wait for a refresh signal from PollingManager
+                    msg = await queue.get()
+                    yield ServerSentEvent(data=msg, event="refresh")
+                except Exception:
+                    break
+
+    return ServerSentEvent(sse_generator())
+
 @get("/api/poll-status")
 async def get_poll_status() -> dict:
     return {
@@ -98,7 +114,6 @@ async def get_poll_status() -> dict:
 
 from src.bot.notifier import dp, bot
 from aiogram import Bot
-import asyncio
 
 async def set_bot_branding(bot: Bot):
     """Programmatically sets the bot's description and info."""
@@ -137,7 +152,7 @@ template_config = TemplateConfig(
 )
 
 app = Litestar(
-    route_handlers=[index, filter_products, product_detail, get_poll_status],
+    route_handlers=[index, filter_products, product_detail, get_poll_status, stream_new_products],
     on_startup=[start_polling_engine],
     on_shutdown=[stop_polling_engine],
     template_config=template_config,
