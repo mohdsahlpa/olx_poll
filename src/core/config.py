@@ -4,8 +4,18 @@ from typing import Optional
 
 class Settings(BaseSettings):
     BOT_TOKEN: str
-    # Using HttpUrl ensures validation of the URL format
-    API_URL: HttpUrl = "https://www.olx.in/api/relevance/v2/search"
+    API_URL: HttpUrl = "https://api.olx.in/relevance/v4/search"
+    
+    # Default search parameters for OLX
+    DEFAULT_PARAMS: dict = {
+        "category": "1453",
+        "location": "2001160",
+        "query": "iphone",
+        "price_min": "25000",
+        "lang": "en-IN",
+        "size": "40"
+    }
+
     POLL_INTERVAL: int = 30
     LOG_LEVEL: str = "INFO"
     DATABASE_URL: str = "sqlite+aiosqlite:///olx_bot.db"
