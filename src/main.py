@@ -6,5 +6,7 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 if __name__ == "__main__":
-    # Disable reload=True to prevent TelegramConflictError during development
-    uvicorn.run("src.api.app:app", host="127.0.0.1", port=8000, reload=False)
+    # Alwaysdata assigns a port dynamically
+    port = int(os.getenv("ALWAYSDATA_HTTP_PORT", 8000))
+    # '0.0.0.0' is required for external access through the proxy
+    uvicorn.run("src.api.app:app", host="0.0.0.0", port=port, reload=False)
