@@ -1,0 +1,51 @@
+<div id="polling-status" class="mb-8 p-5 bg-white border border-gray-100 rounded-xl shadow-sm">
+    <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <div class="relative flex h-3 w-3">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+            </div>
+            <span class="text-[10px] uppercase tracking-[0.2em] font-black text-green-600">Sync Active</span>
+        </div>
+        <div class="flex flex-col items-end">
+            <span class="text-[8px] uppercase tracking-widest text-gray-400 font-bold">Next Refresh In</span>
+            <span class="countdown-display text-xs font-black text-[#1a1a1a]">--:--</span>
+        </div>
+    </div>
+</div>
+
+<form hx-get="/filter" hx-target="#product-list" hx-trigger="change, keyup delay:600ms from:input" hx-indicator="#loading-indicator" class="flex flex-col gap-8">
+    <div class="flex items-center gap-3 mb-2">
+        <h2 class="text-[11px] uppercase tracking-[0.2em] font-extrabold text-black text-left">Control Panel</h2>
+    </div>
+    
+    <div class="space-y-3">
+        <label class="block text-[9px] uppercase tracking-widest font-extrabold text-gray-400">Search Query</label>
+        <input type="text" name="query" value="{{ params.query or '' }}" placeholder="Enter keyword..." class="w-full text-sm font-bold border-b-2 border-gray-100 py-1.5 focus:border-black transition-colors focus:outline-none bg-transparent placeholder-gray-200">
+    </div>
+    
+    <div class="space-y-3">
+        <label class="block text-[9px] uppercase tracking-widest font-extrabold text-gray-400">Price Floor (INR)</label>
+        <div class="relative"><span class="absolute left-0 top-1.5 text-[10px] font-bold text-gray-300">₹</span><input type="number" name="price_min" value="{{ params.price_min or '25000' }}" class="w-full text-xs font-bold border-b-2 border-gray-100 py-1.5 pl-4 focus:border-black transition-colors focus:outline-none bg-transparent"></div>
+    </div>
+    
+    <div class="space-y-3">
+        <label class="block text-[9px] uppercase tracking-widest font-extrabold text-gray-400">Ordering</label>
+        <select name="sort" class="w-full text-xs font-bold border-b-2 border-gray-100 py-1.5 focus:border-black transition-colors bg-transparent focus:outline-none cursor-pointer appearance-none">
+            <option value="newest" {% if params.sort == 'newest' %}selected{% endif %}>Fresh Arrivals</option>
+            <option value="price_low" {% if params.sort == 'price_low' %}selected{% endif %}>Price: Ascending</option>
+            <option value="price_high" {% if params.sort == 'price_high' %}selected{% endif %}>Price: Descending</option>
+        </select>
+    </div>
+    
+    <input type="hidden" name="category" value="1453">
+    <input type="hidden" name="location" value="2001160">
+    <input type="hidden" name="make" value="iphone">
+    <input type="hidden" name="size" value="40">
+    
+    <div class="pt-4">
+        <button type="button" onclick="location.reload()" class="text-[9px] uppercase tracking-[0.4em] font-extrabold border-2 border-black py-4 w-full hover:bg-black hover:text-white transition-all active:scale-[0.98] rounded-md">
+            Reset Engine
+        </button>
+    </div>
+</form>

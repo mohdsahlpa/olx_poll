@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-10">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 items-start">
+        <!-- Left: Image Gallery (Large Column) -->
+        <div class="lg:col-span-7 flex flex-col gap-8 lg:gap-12">
+            <div class="relative aspect-square bg-gray-50 overflow-hidden rounded-xl border-4 border-white shadow-md">
+                {% if product.all_images %}
+                <img id="main-viewer" src="{{ product.all_images[0] }}" alt="{{ product.title }}" 
+                     class="w-full h-full object-contain transition-all duration-700">
+                {% else %}
+                <div class="w-full h-full flex items-center justify-center text-sm text-gray-300 uppercase tracking-[0.5em] font-black">Archive Empty</div>
+                {% endif %}
+            </div>
+            
+            {% if product.all_images|length > 1 %}
+            <div class="grid grid-cols-6 gap-4 no-scrollbar overflow-x-auto pb-4">
+                {% for img in product.all_images %}
+                <button onclick="document.getElementById('main-viewer').src='{{ img }}'" 
+                        class="aspect-square bg-white border-2 border-gray-100 hover:border-black transition-all overflow-hidden rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-black">
+                    <img src="{{ img }}" alt="" class="w-full h-full object-cover opacity-70 hover:opacity-100 transition-opacity">
+                </button>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Right: Detailed Information (Side Column) -->
+        <div class="lg:col-span-5 flex flex-col lg:sticky lg:top-32">
+            <!-- Header Section -->
+            <div class="mb-10 pb-10 border-b-4 border-[#1a1a1a]">
+                <div class="flex justify-between items-center mb-6">
+                    <span class="text-sm uppercase tracking-[0.5em] font-extrabold text-[#1a1a1a]">{{ product.brand }}</span>
+                    <div class="flex items-center gap-2 text-[10px] uppercase tracking-widest text-gray-400 font-extrabold">
+                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                        {{ product.status_display or 'Active' }}
+                    </div>
+                </div>
+                <h1 class="text-4xl lg:text-5xl font-extrabold tracking-tighter mb-6 leading-[1.1] text-[#1a1a1a] italic">{{ product.title }}</h1>
+                <div class="text-4xl lg:text-5xl font-extrabold tracking-tighter text-[#1a1a1a]">{{ product.price.display }}</div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-8 mb-10">
+                <div class="flex flex-col gap-2">
+                    <h4 class="text-[10px] uppercase tracking-[0.4em] text-gray-400 font-extrabold underline decoration-2 underline-offset-4 mb-2">Location Context</h4>
+                    <div class="flex flex-col gap-1">
+                        <div class="text-[15px] font-black text-[#1a1a1a] leading-tight">{{ product.location }}</div>
+                        <div class="text-[13px] font-extrabold text-gray-600 tracking-tight">{{ product.city }}</div>
+                        <div class="text-[10px] font-black text-gray-400 uppercase tracking-widest">{{ product.state }}</div>
+                    </div>
+                </div>
+                <div class="flex flex-col gap-2">
+                    <h4 class="text-[10px] uppercase tracking-[0.4em] text-gray-400 font-extrabold underline decoration-2 underline-offset-4 mb-2">Discovery Time</h4>
+                    <div class="text-[15px] font-extrabold text-[#1a1a1a]">{{ product.created_at.strftime('%A, %d %B') }}<br><span class="text-gray-400 font-bold">at {{ product.created_at.strftime('%H:%M') }}</span></div>
+                </div>
+            </div>
+
+            <!-- Seller Info -->
+            <div class="mb-10 p-5 bg-white border border-gray-100 rounded-xl shadow-sm">
+                <h4 class="text-[9px] uppercase tracking-[0.3em] text-gray-400 font-black mb-3">Merchant Identity</h4>
+                <div class="flex items-center justify-between">
+                    <div class="text-lg font-black text-[#1a1a1a] flex items-center gap-3">
+                        {{ product.seller_name }}
+                        {% if product.is_verified_user %}
+                        <svg class="w-5 h-5 text-black" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                        {% endif %}
+                    </div>
+                    <div class="text-[10px] font-black text-gray-400">{{ product.favorite_count }} Faves</div>
+                </div>
+            </div>
+
+            <!-- Specifications -->
+            <div class="mb-10">
+                <h4 class="text-[11px] uppercase tracking-[0.4em] font-extrabold mb-6 text-[#1a1a1a] border-l-4 border-[#1a1a1a] pl-6">Technical Audit</h4>
+                <div class="grid grid-cols-1 gap-3">
+                    {% for key, val in product.parameters.items() %}
+                    <div class="flex justify-between items-center py-3 border-b border-gray-50 last:border-0">
+                        <span class="text-[10px] uppercase tracking-widest text-gray-500 font-bold">{{ key.replace('_', ' ') }}</span>
+                        <span class="text-[11px] font-extrabold text-[#1a1a1a] uppercase">{{ val }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Narrative -->
+            <div class="mb-12">
+                <h4 class="text-[11px] uppercase tracking-[0.4em] font-extrabold mb-6 text-[#1a1a1a] border-l-4 border-[#1a1a1a] pl-6">Merchant Narrative</h4>
+                <p class="text-[15px] text-gray-700 leading-relaxed font-bold whitespace-pre-line">{{ product.description }}</p>
+            </div>
+
+            <!-- Action -->
+            <div class="mt-auto pt-6">
+                <a href="{{ product.url }}" target="_blank" class="block w-full bg-[#1a1a1a] text-white text-center py-6 text-xs uppercase tracking-[0.5em] font-extrabold hover:bg-black transition-all shadow-xl active:scale-[0.98] rounded-xl">
+                    Secure Listing
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
