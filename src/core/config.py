@@ -27,8 +27,22 @@ class Settings(BaseSettings):
 
     POLL_INTERVAL: int = 30
     LOG_LEVEL: str = "INFO"
-    DATABASE_URL: str = "sqlite+aiosqlite:///olx_bot.db"
-    BASE_URL: str = "http://127.0.0.1:8000"
+    # Robust paths for production
+    @property
+    def DATABASE_URL(self) -> str:
+        if os.name != 'nt':  # Linux/Production
+            db_path = os.path.join(os.path.expanduser("~"), "olx_bot.db")
+            return f"sqlite+aiosqlite:///{db_path}"
+        return "sqlite+aiosqlite:///olx_bot.db"
+
+    @property
+    def BASE_URL(self) -> str:
+        # Check if running on Render
+        render_url = os.getenv("RENDER_EXTERNAL_URL")
+        if render_url:
+            return render_url.rstrip("/")
+        # Fallback to manual env var or local loopback
+        return os.getenv("BASE_URL", "http://127.0.0.1:8000").rstrip("/")
     
     # Secure access: Heart emoji access key
     BOT_PASSWORD: str = "❤️" 
