@@ -87,13 +87,30 @@ async def product_detail(product_id: str) -> Template:
         logger.error(traceback.format_exc())
         raise e
 
+from src.core.polling_manager import polling_manager
+
+@get("/api/poll-status")
+async def get_poll_status() -> dict:
+    return {
+        "seconds_remaining": polling_manager.get_seconds_remaining(),
+        "next_poll": polling_manager.next_poll_time.isoformat() if polling_manager.next_poll_time else None
+    }
+
+async def start_polling_engine(app: Litestar) -> None:
+    polling_manager.start()
+
+async def stop_polling_engine(app: Litestar) -> None:
+    await polling_manager.stop()
+
 template_config = TemplateConfig(
     directory=os.path.join(os.path.dirname(__file__), "templates"),
     engine=JinjaTemplateEngine,
 )
 
 app = Litestar(
-    route_handlers=[index, filter_products, product_detail],
+    route_handlers=[index, filter_products, product_detail, get_poll_status],
+    on_startup=[start_polling_engine],
+    on_shutdown=[stop_polling_engine],
     template_config=template_config,
     debug=True,
 )

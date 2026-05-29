@@ -9,13 +9,14 @@ from src.models.storage import SeenItem, PollerState
 from src.core.logging_config import logger
 from src.models.olx import Product
 
+from src.core.utils import get_random_user_agent
+
 class OLXFetcher:
     def __init__(self):
         self.base_url = str(settings.API_URL)
         self.params = settings.DEFAULT_PARAMS
-        # Precise headers to mimic a modern Chrome browser on Windows
-        self.headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+        # Base headers - User-Agent will be rotated per request
+        self.base_headers = {
             "Accept": "application/json, text/plain, */*",
             "Accept-Language": "en-US,en;q=0.9",
             "Accept-Encoding": "gzip, deflate, br",
@@ -29,12 +30,14 @@ class OLXFetcher:
         }
 
     async def fetch_listings(self) -> List[dict]:
-        """Fetches raw listings using optimized httpx (HTTP/1.1)."""
-        # Forcing HTTP/1.1 often avoids fingerprinting issues that occur with HTTP/2
+        """Fetches raw listings using optimized httpx (HTTP/1.1) and rotating UA."""
+        headers = self.base_headers.copy()
+        headers["User-Agent"] = get_random_user_agent()
+        
         async with httpx.AsyncClient(
             http2=False, 
             timeout=30.0, 
-            headers=self.headers,
+            headers=headers,
             follow_redirects=True
         ) as client:
             for attempt in range(3):

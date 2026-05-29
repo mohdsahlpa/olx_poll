@@ -83,6 +83,49 @@
                 overlay.classList.remove('active');
             }
         });
+
+        // --- Genie Heartbeat (Synchronized Polling) ---
+        (function() {
+            let timeLeft = 0;
+            let syncInterval = null;
+
+            async function syncWithServer() {
+                try {
+                    const response = await fetch('/api/poll-status');
+                    const data = await response.json();
+                    timeLeft = data.seconds_remaining;
+                } catch (e) {
+                    console.error("Genie: Failed to sync heartbeat", e);
+                }
+            }
+
+            function updateUI() {
+                const displays = document.querySelectorAll('.countdown-display');
+                
+                if (timeLeft <= 0) {
+                    // When time hits zero, re-sync with server and refresh feed
+                    syncWithServer().then(() => {
+                        const productList = document.getElementById('product-list');
+                        if (productList) htmx.trigger(productList, 'refresh-feed');
+                    });
+                } else {
+                    timeLeft--;
+                }
+
+                const mins = Math.floor(timeLeft / 60);
+                const secs = timeLeft % 60;
+                const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`;
+                
+                displays.forEach(el => { el.textContent = timeStr; });
+            }
+
+            // Initial sync
+            syncWithServer().then(() => {
+                setInterval(updateUI, 1000);
+                // Re-sync with server every 10 seconds to correct drift
+                setInterval(syncWithServer, 10000);
+            });
+        })();
     </script>
 </body>
 </html>

@@ -35,7 +35,7 @@ class Product(BaseModel):
     def is_new(self) -> bool:
         from datetime import datetime, timezone
         delta = datetime.now(timezone.utc) - self.created_at
-        return delta.total_seconds() < 1800  # 30 minutes
+        return delta.total_seconds() < 3600  # 60 minutes
 
     @classmethod
     def from_olx_json(cls, data: dict) -> "Product":

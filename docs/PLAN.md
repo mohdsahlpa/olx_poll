@@ -21,16 +21,17 @@ Goal: Reliable synchronization engine.
 - [x] Response validation and rich data extraction.
 
 ### 3. Olx Genie Web UI (Complete)
-- [x] Monochromatic, minimal aesthetic.
-- [x] Responsive layout with RHS configuration sidebar.
-- [x] Dynamic filtering via HTMX (Query, Price, Sort).
-- [x] Rich detail pages with interactive galleries.
-- [x] High-density information architecture.
+- [x] Monochromatic, minimal aesthetic with 'Olx Genie' branding.
+- [x] Responsive layout with RHS sidebar (Desktop) and Slide-over (Mobile).
+- [x] Dynamic configuration (Query, Price, Sort) with HTMX live refetch.
+- [x] Synchronized Heartbeat: Server-side polling with randomized intervals.
+- [x] High-density information display (4x grid desktop, 2x mobile).
 
-### 4. Telegram Alerts (Next)
-- [ ] Implement bot notification loop.
-- [ ] Message formatting for new items.
-- [ ] Integration with search parameters.
+### 4. Telegram Alerts (Complete)
+- [x] Bot notification loop integrated into PollingManager.
+- [x] High-density HTML message formatting with images.
+- [x] Strategy B (ID Tracking) to prevent duplicate alerts.
 
-## Phase 3: Deliverable Checkpoint
+## Phase 3: Deliverable Checkpoint (Complete)
+- [x] v0.1.0 — Polling Core Finalized.
 - [ ] Stable continuous polling for 24h+ without crashes.
