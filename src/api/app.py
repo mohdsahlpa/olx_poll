@@ -104,17 +104,24 @@ async def set_bot_branding(bot: Bot):
     """Programmatically sets the bot's description and info."""
     try:
         await bot.set_my_description(
-            "Welcome to Olx Genie. I am your automated assistant for finding the best deals on OLX.in. "
-            "Enter your 3-emoji access code to start receiving real-time alerts."
+            "Olx Genie — Your automated intelligence for finding premium deals on OLX.in.\n\n"
+            "• Real-time discovery engine\n"
+            "• High-density filtered alerts\n"
+            "• Direct Web UI integration\n\n"
+            "Please enter the heart access key to unlock your personal search genie."
         )
         await bot.set_my_short_description(
-            "Your private OLX search genie. 🍎🐍🚀"
+            "Your private OLX intelligence assistant. ❤️"
         )
         logger.info("Bot branding successfully updated.")
     except Exception as e:
         logger.error(f"Failed to set bot branding: {e}")
 
+from src.core.database import init_db
+
 async def start_polling_engine(app: Litestar) -> None:
+    # Ensure database tables are created
+    await init_db()
     polling_manager.start()
     # Set branding and start bot polling in background
     await set_bot_branding(bot)

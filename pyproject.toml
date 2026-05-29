@@ -15,3 +15,10 @@ dependencies = [
     "ruff>=0.15.15",
     "sqlalchemy>=2.0.50",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+    "pytest-asyncio>=1.4.0",
+    "pytest-mock>=3.15.1",
+]

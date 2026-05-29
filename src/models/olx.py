@@ -32,6 +32,10 @@ class Product(BaseModel):
     favorite_count: int = 0
     
     @property
+    def brand(self) -> str:
+        return self.parameters.get("make", "Generic")
+
+    @property
     def is_new(self) -> bool:
         from datetime import datetime, timezone
         delta = datetime.now(timezone.utc) - self.created_at

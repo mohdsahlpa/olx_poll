@@ -30,17 +30,17 @@ async def cmd_start(message: types.Message):
             await session.commit()
             await message.answer(
                 "<b>Welcome to Olx Genie.</b>\n\n"
-                "This is a private automated assistant. Please enter the 3-emoji access code to continue.",
+                "This is a private automated assistant. Please enter the heart access key to continue.",
                 parse_mode=ParseMode.HTML
             )
         elif not user.is_verified:
-            await message.answer("Access denied. Please enter the correct emoji access code.")
+            await message.answer("Access denied. Please enter the heart access key.")
         else:
             await show_subscription_menu(message)
 
-@dp.message(F.text.contains("🍎") or F.text.contains("🐍") or F.text.contains("🚀"))
+@dp.message(F.text == "❤️")
 async def check_password(message: types.Message):
-    """Verify emoji combination."""
+    """Verify heart access key."""
     if message.text == settings.BOT_PASSWORD:
         async with async_session() as session:
             await session.execute(
@@ -52,7 +52,7 @@ async def check_password(message: types.Message):
         await message.answer("✅ <b>Access Granted.</b>", parse_mode=ParseMode.HTML)
         await show_subscription_menu(message)
     else:
-        await message.answer("❌ Incorrect code. Access denied.")
+        await message.answer("❌ Incorrect key. Access denied.")
 
 async def show_subscription_menu(message: types.Message):
     """Ask verified user to subscribe or not."""

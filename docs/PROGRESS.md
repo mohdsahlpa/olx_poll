@@ -15,4 +15,6 @@
 | Bug Fixes | ✅ Done | 2026-05-30 | Resolved 500 errors and layout issues |
 | Automated Sync | ✅ Done | 2026-05-30 | Server-side Heartbeat + UI Sync |
 | Telegram Alerts | ✅ Done | 2026-05-30 | Strategy 1 Secure Subscription active |
-| Deliverable v0.1.0 | ✅ Done | 2026-05-30 | Polling Core & WebUI Finalized |
+| Test Suite | ✅ Done | 2026-05-30 | 100% pass rate for models/config/db |
+| Branding | ✅ Done | 2026-05-30 | Bot profile and onboarding updated |
+| Deliverable v0.1.0 | ✅ Done | 2026-05-30 | Stable polling core complete |

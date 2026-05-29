@@ -36,7 +36,7 @@ class OLXFetcher:
         
         async with httpx.AsyncClient(
             http2=False, 
-            timeout=30.0, 
+            timeout=60.0, 
             headers=headers,
             follow_redirects=True
         ) as client:
