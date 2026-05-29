@@ -1,6 +1,7 @@
 from pydantic import HttpUrl, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
+import os
 
 class Settings(BaseSettings):
     BOT_TOKEN: str
@@ -26,7 +27,14 @@ class Settings(BaseSettings):
 
     POLL_INTERVAL: int = 30
     LOG_LEVEL: str = "INFO"
-    DATABASE_URL: str = "sqlite+aiosqlite:///olx_bot.db"
+    # Use absolute path for database to avoid permission issues on servers
+    @property
+    def DATABASE_URL(self) -> str:
+        # If running on Alwaysdata/Linux, use the home directory
+        if os.name != 'nt': # Not Windows
+            db_path = os.path.join(os.path.expanduser("~"), "olx_bot.db")
+            return f"sqlite+aiosqlite:///{db_path}"
+        return "sqlite+aiosqlite:///olx_bot.db"
     BASE_URL: str = "http://127.0.0.1:8000"
     
     # Secure access: Heart emoji access key
