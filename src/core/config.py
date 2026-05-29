@@ -6,14 +6,22 @@ class Settings(BaseSettings):
     BOT_TOKEN: str
     API_URL: HttpUrl = "https://api.olx.in/relevance/v4/search"
     
-    # Default search parameters for OLX
+    # Default search parameters for OLX (exactly matching the provided URL)
     DEFAULT_PARAMS: dict = {
         "category": "1453",
+        "facet_limit": "1000",
         "location": "2001160",
-        "query": "iphone",
+        "location_facet_limit": "40",
+        "make": "iphone",
+        "platform": "web-desktop",
         "price_min": "25000",
-        "lang": "en-IN",
-        "size": "40"
+        "pttEnabled": "true",
+        "query": "iphone",
+        "relaxedFilters": "true",
+        "size": "40",
+        "spellcheck": "true",
+        "user": "08760266372311145",
+        "lang": "en-IN"
     }
 
     POLL_INTERVAL: int = 30

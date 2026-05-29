@@ -7,34 +7,56 @@ from src.core.config import settings
 from src.core.database import async_session
 from src.models.storage import SeenItem, PollerState
 from src.core.logging_config import logger
+from src.models.olx import Product
 
 class OLXFetcher:
     def __init__(self):
         self.base_url = str(settings.API_URL)
         self.params = settings.DEFAULT_PARAMS
+        # Precise headers to mimic a modern Chrome browser on Windows
         self.headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-            "Accept": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+            "Accept": "application/json, text/plain, */*",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Referer": "https://www.olx.in/",
+            "Origin": "https://www.olx.in",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-site",
+            "Pragma": "no-cache",
+            "Cache-Control": "no-cache",
         }
 
     async def fetch_listings(self) -> List[dict]:
-        """Fetches raw listings from OLX API with retries."""
-        async with httpx.AsyncClient(timeout=15.0, headers=self.headers) as client:
+        """Fetches raw listings using optimized httpx (HTTP/1.1)."""
+        # Forcing HTTP/1.1 often avoids fingerprinting issues that occur with HTTP/2
+        async with httpx.AsyncClient(
+            http2=False, 
+            timeout=30.0, 
+            headers=self.headers,
+            follow_redirects=True
+        ) as client:
             for attempt in range(3):
                 try:
+                    logger.info(f"Attempting fetch (httpx) - Attempt {attempt + 1}")
                     response = await client.get(self.base_url, params=self.params)
+                    
                     if response.status_code == 403:
-                        logger.warning(f"Access forbidden (403) on attempt {attempt + 1}. Retrying with backoff...")
-                        await asyncio.sleep(5 * (attempt + 1))
+                        logger.warning(f"403 Forbidden. Throttled or detected. Attempt {attempt + 1}")
+                        await asyncio.sleep(15 * (attempt + 1))
                         continue
                         
                     response.raise_for_status()
                     data = response.json()
                     return data.get("data", [])
-                except httpx.HTTPError as e:
-                    logger.error(f"HTTP error occurred: {e}")
-                    if attempt == 2: raise
-                    await asyncio.sleep(2)
+                except httpx.ReadTimeout:
+                    logger.warning(f"ReadTimeout. Server is slow. Attempt {attempt + 1}")
+                    await asyncio.sleep(10)
+                except Exception as e:
+                    logger.error(f"Error on attempt {attempt + 1}: {type(e).__name__} - {e}")
+                    if attempt == 2: return []
+                    await asyncio.sleep(5)
             return []
 
 class StrategyBPoller:
@@ -43,30 +65,36 @@ class StrategyBPoller:
     def __init__(self, fetcher: OLXFetcher):
         self.fetcher = fetcher
 
-    async def poll(self) -> List[dict]:
-        """Runs a single poll cycle and returns NEW items only."""
+    async def poll(self) -> List[Product]:
+        """Runs a single poll cycle and returns NEW normalized Product objects."""
         raw_items = await self.fetcher.fetch_listings()
         if not raw_items:
             return []
 
-        new_items = []
+        new_products = []
         async with async_session() as session:
-            # 1. Get all seen IDs in one go for comparison
-            # In a real high-scale app, we'd use a more sophisticated timestamp check
-            # but for Strategy B, we track existence.
+            # 1. Get all seen IDs
             stmt = select(SeenItem.external_id)
             result = await session.execute(stmt)
             seen_ids = set(result.scalars().all())
 
-            for item in raw_items:
-                item_id = str(item.get("id"))
-                if item_id not in seen_ids:
-                    new_items.append(item)
-                    # Mark as seen
-                    session.add(SeenItem(id=item_id, external_id=item_id))
+            for item_data in raw_items:
+                product = Product.from_olx_json(item_data)
+                if product.external_id not in seen_ids:
+                    new_products.append(product)
+                    
+                    # Store in database with metadata
+                    session.add(SeenItem(
+                        id=product.id,
+                        external_id=product.external_id,
+                        title=product.title,
+                        price_display=product.price.display,
+                        image_url=product.image_url,
+                        created_at=product.created_at
+                    ))
             
-            if new_items:
+            if new_products:
                 await session.commit()
-                logger.info(f"Detected {len(new_items)} new items.")
+                logger.info(f"Detected {len(new_products)} new products.")
             
-        return new_items
+        return new_products
