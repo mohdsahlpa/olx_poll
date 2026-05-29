@@ -96,11 +96,33 @@ async def get_poll_status() -> dict:
         "next_poll": polling_manager.next_poll_time.isoformat() if polling_manager.next_poll_time else None
     }
 
+from src.bot.notifier import dp, bot
+from aiogram import Bot
+import asyncio
+
+async def set_bot_branding(bot: Bot):
+    """Programmatically sets the bot's description and info."""
+    try:
+        await bot.set_my_description(
+            "Welcome to Olx Genie. I am your automated assistant for finding the best deals on OLX.in. "
+            "Enter your 3-emoji access code to start receiving real-time alerts."
+        )
+        await bot.set_my_short_description(
+            "Your private OLX search genie. 🍎🐍🚀"
+        )
+        logger.info("Bot branding successfully updated.")
+    except Exception as e:
+        logger.error(f"Failed to set bot branding: {e}")
+
 async def start_polling_engine(app: Litestar) -> None:
     polling_manager.start()
+    # Set branding and start bot polling in background
+    await set_bot_branding(bot)
+    asyncio.create_task(dp.start_polling(bot))
 
 async def stop_polling_engine(app: Litestar) -> None:
     await polling_manager.stop()
+    await bot.session.close()
 
 template_config = TemplateConfig(
     directory=os.path.join(os.path.dirname(__file__), "templates"),

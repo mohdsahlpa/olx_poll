@@ -6,7 +6,6 @@ from typing import Optional
 from src.core.logging_config import logger
 
 from src.scraper.poller import OLXFetcher, StrategyBPoller
-from src.bot.notifier import notify_new_product
 from src.core.config import settings
 
 class PollingManager:
@@ -47,15 +46,11 @@ class PollingManager:
             try:
                 new_products = await self.poller.poll()
                 if new_products:
-                    logger.info(f"Genie Heartbeat: Found {len(new_products)} new products. Sending alerts...")
-                    # We need a chat_id. For now, we use a placeholder or log it.
-                    # In a real scenario, this would iterate through active subscribers.
-                    # FOR THIS PROJECT: We will try to send if a CHAT_ID is configured or just log.
-                    target_chat = os.getenv("TELEGRAM_CHAT_ID")
-                    if target_chat:
-                        for product in new_products:
-                            await notify_new_product(target_chat, product)
-                            await asyncio.sleep(1) # Prevent rate limiting
+                    logger.info(f"Genie Heartbeat: Found {len(new_products)} new products. Broadcasting...")
+                    from src.bot.notifier import broadcast_listing
+                    for product in new_products:
+                        await broadcast_listing(product)
+                        await asyncio.sleep(1) # Safety
                 
                 self.last_poll_status = f"Last poll found {len(new_products)} items at {datetime.now().strftime('%H:%M:%S')}"
             except Exception as e:

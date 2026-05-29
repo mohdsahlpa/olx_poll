@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     POLL_INTERVAL: int = 30
     LOG_LEVEL: str = "INFO"
     DATABASE_URL: str = "sqlite+aiosqlite:///olx_bot.db"
+    BASE_URL: str = "http://127.0.0.1:8000"
+    
+    # Secure access: Emoji combo password
+    BOT_PASSWORD: str = "🍎🐍🚀" # Default emoji combo
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
