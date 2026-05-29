@@ -8,8 +8,10 @@ A lightweight Telegram Bot that polls a specific OLX.in API endpoint at regular 
 - **Bot Framework:** aiogram 3.x
 - **Dependency Management:** uv
 - **HTTP Client:** httpx
+- **Database Layer:** SQLAlchemy 2.0 (Async) + aiosqlite
 - **Configuration:** pydantic-settings
 - **Models:** pydantic
+- **Quality Tools:** ruff, pre-commit
 
 ## Architecture
 - `src/core/`: Configuration and global settings.
