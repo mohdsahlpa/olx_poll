@@ -1,4 +1,4 @@
-from litestar import Litestar, get, Request
+from litestar import Litestar, get, Request, route
 from litestar.response import Template, ServerSentEvent
 from litestar.template.config import TemplateConfig
 from litestar.contrib.jinja import JinjaTemplateEngine
@@ -45,7 +45,7 @@ async def fetch_and_normalize(params: Dict[str, str]) -> List[Product]:
     _product_cache = products
     return products
 
-@get("/", http_method=["GET", "HEAD"])
+@route("/", http_method=["GET", "HEAD"])
 async def index() -> Template:
     # Baseline settings from config
     params = settings.DEFAULT_PARAMS.copy()
