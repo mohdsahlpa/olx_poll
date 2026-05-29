@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, HttpUrl
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime
 import re
 
@@ -9,62 +9,63 @@ class PriceInfo(BaseModel):
     display: str
 
 class Product(BaseModel):
-    """Normalized internal product representation for OLX v4."""
+    """Rich internal product representation for OLX v4."""
     id: str
     external_id: str
     title: str
     description: Optional[str] = None
     price: PriceInfo
     location: str
+    city: str
+    state: str
     url: str
     image_url: Optional[str] = None
+    all_images: List[str] = []
     created_at: datetime
-    first_seen: datetime = Field(default_factory=datetime.utcnow)
+    
+    # Minor Details / Metadata
+    seller_name: Optional[str] = None
+    user_type: Optional[str] = None
+    is_verified_user: bool = False
+    parameters: Dict[str, str] = {}
+    status_display: Optional[str] = None
+    favorite_count: int = 0
+    
+    @property
+    def is_new(self) -> bool:
+        from datetime import datetime, timezone
+        delta = datetime.now(timezone.utc) - self.created_at
+        return delta.total_seconds() < 1800  # 30 minutes
 
     @classmethod
     def from_olx_json(cls, data: dict) -> "Product":
-        """
-        Robustly converts raw OLX v4 JSON to a Normalized Product.
-        Uses safe defaults for missing or unexpected fields.
-        """
         item_id = str(data.get("id", "0"))
         
-        # Price extraction (Safe Path)
+        # Price
         price_node = data.get("price", {}).get("value", {})
         price = PriceInfo(
             value=float(price_node.get("raw", 0)),
-            currency=price_node.get("currency", {}).get("iso_4217", "INR"),
             display=price_node.get("display", "N/A")
         )
 
-        # Location extraction (Building readable string)
+        # Location
         loc_res = data.get("locations_resolved", {})
-        parts = [
-            loc_res.get("SUBLOCALITY_LEVEL_1_name"),
-            loc_res.get("ADMIN_LEVEL_3_name"),
-            loc_res.get("ADMIN_LEVEL_1_name")
-        ]
-        location = ", ".join([p for p in parts if p]) or "Unknown Location"
+        location = loc_res.get("SUBLOCALITY_LEVEL_1_name", "Unknown")
+        city = loc_res.get("ADMIN_LEVEL_3_name", "Unknown")
+        state = loc_res.get("ADMIN_LEVEL_1_name", "Unknown")
 
-        # URL Reconstruction: https://www.olx.in/item/[title-slug]-iid-[id]
+        # URL
         title = data.get("title", "No Title")
         slug = re.sub(r'[^a-z0-9]+', '-', title.lower()).strip('-')
         url = f"https://www.olx.in/item/{slug}-iid-{item_id}"
 
-        # Image extraction (Prefer 'big' size for Telegram)
+        # Images
         images = data.get("images", [])
-        image_url = None
-        if images:
-            # Try to get 'big' first, then 'url' (default)
-            image_url = images[0].get("big", {}).get("url") or images[0].get("url")
+        all_images = [img.get("full", {}).get("url") or img.get("url") for img in images if img]
+        image_url = all_images[0] if all_images else None
 
-        # Date handling
-        created_at_str = data.get("created_at", datetime.utcnow().isoformat())
-        try:
-            # Handle OLX ISO format with offsets
-            created_at = datetime.fromisoformat(created_at_str.replace("Z", "+00:00"))
-        except ValueError:
-            created_at = datetime.utcnow()
+        # Parameters (Minor details)
+        params = {p.get("key"): p.get("formatted_value") for p in data.get("parameters", []) if p.get("key")}
 
         return cls(
             id=item_id,
@@ -73,7 +74,16 @@ class Product(BaseModel):
             description=data.get("description"),
             price=price,
             location=location,
+            city=city,
+            state=state,
             url=url,
             image_url=image_url,
-            created_at=created_at
+            all_images=all_images,
+            created_at=datetime.fromisoformat(data.get("created_at", datetime.utcnow().isoformat()).replace("Z", "+00:00")),
+            seller_name=data.get("user_name"),
+            user_type=data.get("user_type"),
+            is_verified_user=data.get("is_kyc_verified_user", False),
+            parameters=params,
+            status_display=data.get("status", {}).get("display"),
+            favorite_count=data.get("favorites", {}).get("count", 0)
         )

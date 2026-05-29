@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block mobile_toggle %}
+<!-- Mobile Toggle -->
+<button onclick="toggleMenu()" class="lg:hidden p-2 text-gray-900">
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16m-7 6h7"/></svg>
+</button>
+{% endblock %}
+
+{% block sidebar %}
+<!-- Sidebar Config (Right - Desktop) -->
+<aside class="hidden lg:block w-80 border-l border-gray-100 p-8 sticky top-16 h-fit max-h-[calc(100vh-4rem)] overflow-hidden bg-white shadow-sm rounded-l-xl">
+    {% include "partials/config_form.html" %}
+</aside>
+{% endblock %}
+
+{% block mobile_menu %}
+<!-- Mobile Slide-over Menu -->
+<div id="mobile-overlay" onclick="toggleMenu()" class="fixed inset-0 bg-black/20 backdrop-blur-sm z-[60] lg:hidden"></div>
+<div id="mobile-menu" class="fixed inset-y-0 right-0 w-80 bg-white z-[70] p-8 shadow-2xl lg:hidden">
+    <div class="flex justify-between items-center mb-10 text-[#1a1a1a]">
+        <span class="text-[10px] uppercase tracking-widest font-extrabold">Control Panel</span>
+        <button onclick="toggleMenu()"><svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+    </div>
+    {% include "partials/config_form.html" %}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="flex items-baseline justify-between mb-8">
+    <h2 class="text-2xl font-extrabold tracking-tighter italic text-gray-900 leading-none">Genie's Findings</h2>
+    <div class="h-px flex-grow mx-4 bg-gray-100 hidden md:block"></div>
+    <span class="text-[9px] uppercase tracking-widest text-gray-400 font-black">Feed Active</span>
+</div>
+
+<div id="product-list" class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-12">
+    {% include "partials/product_list.html" %}
+</div>
+{% endblock %}

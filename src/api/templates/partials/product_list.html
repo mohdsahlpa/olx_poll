@@ -1,0 +1,44 @@
+{% for product in products %}
+<div class="flex flex-col group animate-fadeIn border-b border-gray-50 pb-6 last:border-0 lg:border-0 lg:pb-0">
+    <a href="/product/{{ product.id }}" class="relative aspect-[3/4] overflow-hidden bg-gray-50 mb-4 block rounded shadow-sm hover:shadow-md transition-all duration-500">
+        {% if product.image_url %}<img src="{{ product.image_url }}" alt="{{ product.title }}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
+        {% else %}<div class="w-full h-full flex items-center justify-center text-[9px] text-gray-300 uppercase tracking-widest font-bold">No Image</div>{% endif %}
+        
+        {% if product.is_new %}
+        <div class="absolute top-3 left-3 bg-green-500 text-white px-2 py-0.5 text-[8px] font-black uppercase tracking-widest rounded shadow-sm animate-pulse z-10">
+            New
+        </div>
+        {% endif %}
+
+        {% if product.all_images|length > 1 %}<div class="absolute bottom-4 right-4 bg-white/95 backdrop-blur-sm px-2 py-1 text-[8px] font-extrabold tracking-[0.1em] uppercase border border-gray-100 rounded shadow-xs">{{ product.all_images|length }} photos</div>{% endif %}
+    </a>
+    <div class="flex flex-col gap-3 px-1">
+        <!-- Title: No truncation, allow 2 lines -->
+        <h3 class="text-[13px] font-extrabold uppercase tracking-tight text-[#1a1a1a] leading-tight group-hover:text-gray-500 transition-colors">
+            {{ product.title }}
+        </h3>
+
+        <div class="flex justify-between items-center">
+            <span class="text-lg font-black tracking-tighter text-[#1a1a1a]">{{ product.price.display }}</span>
+            <span class="text-[10px] font-extrabold uppercase tracking-[0.1em] text-gray-400 bg-gray-50 px-2 py-0.5 rounded">{{ product.brand }}</span>
+        </div>
+
+        <!-- Meta Details: Full visibility -->
+        <div class="flex flex-col gap-3 mt-2 pt-3 border-t border-gray-100">
+            <div class="flex items-start gap-2">
+                <svg class="w-4 h-4 text-gray-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                <div class="flex flex-col">
+                    <span class="text-[12px] text-gray-600 font-extrabold uppercase tracking-tight leading-tight">
+                        {{ product.location }}, {{ product.city }}
+                    </span>
+                    <span class="text-[10px] text-gray-400 font-black uppercase tracking-widest mt-1">{{ product.state }}</span>
+                </div>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span class="text-[12px] text-gray-500 font-extrabold uppercase tracking-tight">{{ product.created_at.strftime('%d %b • %H:%M') }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}

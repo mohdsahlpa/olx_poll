@@ -8,4 +8,8 @@
 | Documentation | ✅ Done | 2026-05-29 | AI readiness docs v1 |
 | Core Config | ✅ Done | 2026-05-29 | Pydantic settings + HttpUrl validation |
 | Alignment v0.1.0 | ✅ Done | 2026-05-29 | Plan aligned with user checkpoint |
-| Architecture Improvements | ✅ Done | 2026-05-29 | Logging, Pre-commit, SQL stack added |
+| Architecture Impr. | ✅ Done | 2026-05-29 | Logging, Pre-commit, SQL stack added |
+| Fetcher Engine | ✅ Done | 2026-05-30 | Optimized httpx client verified |
+| Normalization | ✅ Done | 2026-05-30 | Rich Product model implemented |
+| Olx Genie UI | ✅ Done | 2026-05-30 | Rich HTMX/Tailwind dashboard finished |
+| Bug Fixes | ✅ Done | 2026-05-30 | Resolved 500 errors and layout issues |
