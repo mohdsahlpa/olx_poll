@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     BOT_TOKEN: str
     API_URL: HttpUrl = "https://api.olx.in/relevance/v4/search"
     
-    # Default search parameters for OLX (exactly matching the provided URL)
+    # Default search parameters for OLX
     DEFAULT_PARAMS: dict = {
         "category": "1453",
         "facet_limit": "1000",
@@ -27,14 +27,7 @@ class Settings(BaseSettings):
 
     POLL_INTERVAL: int = 30
     LOG_LEVEL: str = "INFO"
-    # Use absolute path for database to avoid permission issues on servers
-    @property
-    def DATABASE_URL(self) -> str:
-        # If running on Alwaysdata/Linux, use the home directory
-        if os.name != 'nt': # Not Windows
-            db_path = os.path.join(os.path.expanduser("~"), "olx_bot.db")
-            return f"sqlite+aiosqlite:///{db_path}"
-        return "sqlite+aiosqlite:///olx_bot.db"
+    DATABASE_URL: str = "sqlite+aiosqlite:///olx_bot.db"
     BASE_URL: str = "http://127.0.0.1:8000"
     
     # Secure access: Heart emoji access key
