@@ -40,3 +40,6 @@ Goal: Reliable synchronization engine.
 ## Phase 3: Deliverable Checkpoint (Complete)
 - [x] v0.1.0 — Polling Core Finalized.
 - [x] Stable continuous polling architecture verified.
+
+## Phase 4: Resilience & Monitoring (In Progress)
+- [x] Implementation of `/health` and `/stats` endpoints for Render.com keep-alive.

@@ -85,7 +85,7 @@ async def handle_subscription(callback: types.CallbackQuery):
 # --- Notification Logic ---
 
 async def broadcast_listing(product: Product):
-    """Send a new product to all active subscribers."""
+    """Send a new product to all active subscribers with an Instant Contact button."""
     async with async_session() as session:
         stmt = select(Subscriber.chat_id).where(Subscriber.is_subscribed == True)
         result = await session.execute(stmt)
@@ -93,6 +93,9 @@ async def broadcast_listing(product: Product):
 
     # Base URL for the Genie Web UI
     base_url = settings.BASE_URL
+    
+    # "Instant Contact" Link (Deep link to OLX Chat)
+    contact_url = f"https://www.olx.in/chat/conversation/item/{product.id}"
     
     text = (
         f"<b>🆕 GENIE DISCOVERY</b>\n\n"
@@ -103,11 +106,29 @@ async def broadcast_listing(product: Product):
         f"🔗 <a href='{base_url}/product/{product.id}'>VIEW IN GENIE DASHBOARD</a>"
     )
 
+    # Keyboard with Instant Contact Bridge
+    builder = InlineKeyboardBuilder()
+    builder.row(
+        types.InlineKeyboardButton(text="💬 INSTANT CONTACT", url=contact_url),
+        types.InlineKeyboardButton(text="🖥️ GENIE DASHBOARD", url=f"{base_url}/product/{product.id}")
+    )
+
     for chat_id in subscriber_ids:
         try:
             if product.image_url:
-                await bot.send_photo(chat_id=chat_id, photo=product.image_url, caption=text, parse_mode=ParseMode.HTML)
+                await bot.send_photo(
+                    chat_id=chat_id, 
+                    photo=product.image_url, 
+                    caption=text, 
+                    reply_markup=builder.as_markup(),
+                    parse_mode=ParseMode.HTML
+                )
             else:
-                await bot.send_message(chat_id=chat_id, text=text, parse_mode=ParseMode.HTML)
+                await bot.send_message(
+                    chat_id=chat_id, 
+                    text=text, 
+                    reply_markup=builder.as_markup(),
+                    parse_mode=ParseMode.HTML
+                )
         except Exception as e:
             logger.error(f"Broadcast failed for {chat_id}: {e}")

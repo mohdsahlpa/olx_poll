@@ -2,11 +2,12 @@ import asyncio
 import random
 import os
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Set
 from src.core.logging_config import logger
 
 from src.scraper.poller import OLXFetcher, StrategyBPoller
 from src.core.config import settings
+from src.models.olx import Product
 
 class PollingManager:
     def __init__(self):
@@ -18,6 +19,25 @@ class PollingManager:
         # Initialize engine components
         self.fetcher = OLXFetcher()
         self.poller = StrategyBPoller(self.fetcher)
+        
+        # SSE Broadcast Queues (Store queues for connected clients)
+        self.subscribers: Set[asyncio.Queue] = set()
+
+    async def subscribe(self):
+        """Creates a new queue for an SSE client."""
+        queue = asyncio.Queue()
+        self.subscribers.add(queue)
+        logger.info(f"SSE: Client connected. Total subscribers: {len(self.subscribers)}")
+        try:
+            yield queue
+        finally:
+            self.subscribers.remove(queue)
+            logger.info(f"SSE: Client disconnected. Total subscribers: {len(self.subscribers)}")
+
+    async def _signal_refresh(self):
+        """Pushes a refresh signal to all connected SSE clients."""
+        for queue in list(self.subscribers):
+            await queue.put("refresh")
 
     def get_seconds_remaining(self) -> int:
         if not self.next_poll_time:
@@ -30,7 +50,10 @@ class PollingManager:
         
         # 1. Warm up the database (mark current items as seen to avoid initial flood)
         logger.info("Genie Heartbeat: Warming up database...")
-        await self.poller.poll()
+        try:
+            await self.poller.poll()
+        except Exception as e:
+            logger.error(f"Genie Heartbeat: Initial warmup failed: {e}")
         
         while self.is_running:
             # 2. Calculate next interval (15, 30, 60)
@@ -47,6 +70,11 @@ class PollingManager:
                 new_products = await self.poller.poll()
                 if new_products:
                     logger.info(f"Genie Heartbeat: Found {len(new_products)} new products. Broadcasting...")
+                    
+                    # Notify SSE clients (Single refresh trigger)
+                    await self._signal_refresh()
+                    
+                    # Notify Telegram Subscribers
                     from src.bot.notifier import broadcast_listing
                     for product in new_products:
                         await broadcast_listing(product)

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Olx Genie / Feed</title>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://unpkg.com/htmx.org/dist/ext/sse.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -36,20 +37,22 @@
         h1, h2, h3, .font-black { color: var(--text-primary) !important; }
     </style>
 </head>
-<body class="antialiased">
+<body class="antialiased" hx-ext="sse" sse-connect="/stream">
     <!-- Navbar -->
     <nav class="border-b border-gray-100 py-4 px-6 flex justify-between items-center sticky top-0 bg-white/90 backdrop-blur-md z-50 shadow-sm">
         <a href="/" class="text-lg font-extrabold tracking-[0.2em] uppercase italic">Olx Genie</a>
         
         <div class="flex items-center gap-6">
             <div id="loading-indicator" class="htmx-indicator text-[9px] uppercase tracking-widest text-gray-400 font-bold">Searching...</div>
-            
             {% block mobile_toggle %}{% endblock %}
         </div>
     </nav>
 
     <!-- Main Layout -->
     <div class="flex flex-col lg:flex-row min-h-screen">
+        <!-- SSE Signal listener (Hidden) -->
+        <div style="display:none;" sse-swap="refresh" hx-trigger="sse:refresh" hx-on:htmx:after-settle="window.refreshFeed()"></div>
+
         <!-- Main Content -->
         <main class="flex-1 px-6 py-8">
             {% block content %}{% endblock %}
@@ -87,15 +90,25 @@
         // --- Genie Heartbeat (Synchronized Polling) ---
         (function() {
             let timeLeft = 0;
-            let syncInterval = null;
+            
+            // Centralized refresh function
+            window.refreshFeed = async function() {
+                console.log("Genie: Discovery Signal Received. Syncing Feed...");
+                const productList = document.getElementById('product-list');
+                if (productList) {
+                    htmx.trigger(productList, 'refresh-feed');
+                }
+                await syncWithServer();
+            };
 
             async function syncWithServer() {
                 try {
                     const response = await fetch('/api/poll-status');
                     const data = await response.json();
                     timeLeft = data.seconds_remaining;
+                    console.log("Genie: Heartbeat Synced. Next poll in " + timeLeft + "s");
                 } catch (e) {
-                    console.error("Genie: Failed to sync heartbeat", e);
+                    console.error("Genie: Heartbeat sync failed", e);
                 }
             }
 
@@ -103,11 +116,7 @@
                 const displays = document.querySelectorAll('.countdown-display');
                 
                 if (timeLeft <= 0) {
-                    // When time hits zero, re-sync with server and refresh feed
-                    syncWithServer().then(() => {
-                        const productList = document.getElementById('product-list');
-                        if (productList) htmx.trigger(productList, 'refresh-feed');
-                    });
+                    window.refreshFeed();
                 } else {
                     timeLeft--;
                 }
@@ -116,14 +125,16 @@
                 const secs = timeLeft % 60;
                 const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`;
                 
-                displays.forEach(el => { el.textContent = timeStr; });
+                displays.forEach(el => {
+                    el.textContent = timeStr;
+                });
             }
 
-            // Initial sync
+            // Start the heartbeat
             syncWithServer().then(() => {
                 setInterval(updateUI, 1000);
-                // Re-sync with server every 10 seconds to correct drift
-                setInterval(syncWithServer, 10000);
+                // Heavy sync every 30s to keep in line with server state
+                setInterval(syncWithServer, 30000);
             });
         })();
     </script>

@@ -18,3 +18,4 @@
 | Test Suite | ✅ Done | 2026-05-30 | 100% pass rate for models/config/db |
 | Branding | ✅ Done | 2026-05-30 | Bot profile and onboarding updated |
 | Deliverable v0.1.0 | ✅ Done | 2026-05-30 | Stable polling core complete |
+| Health Monitoring | ✅ Done | 2026-05-31 | Added /health and /stats for Render.com |

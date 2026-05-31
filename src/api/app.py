@@ -1,8 +1,10 @@
 from litestar import Litestar, get, Request, route
 from litestar.response import Template, ServerSentEvent
 from litestar.template.config import TemplateConfig
-from litestar.contrib.jinja import JinjaTemplateEngine
+from litestar.plugins.jinja import JinjaTemplateEngine
 from litestar.exceptions import NotFoundException
+from litestar.params import FromPath
+from typing import Annotated
 from src.scraper.poller import OLXFetcher
 from src.models.olx import Product
 from src.core.config import settings
@@ -10,6 +12,7 @@ from src.core.logging_config import setup_logging, logger
 import os
 import traceback
 import asyncio
+from datetime import datetime
 from typing import List, Dict, AsyncGenerator
 
 # Initialize logging at top level
@@ -60,7 +63,7 @@ async def filter_products(request: Request) -> Template:
     return Template(template_name="partials/product_list.html", context={"products": products})
 
 @get("/product/{product_id:str}")
-async def product_detail(product_id: str) -> Template:
+async def product_detail(product_id: FromPath[str]) -> Template:
     try:
         # 1. Search in existing cache
         product = next((p for p in _product_cache if p.id == product_id), None)
@@ -112,6 +115,40 @@ async def get_poll_status() -> dict:
         "next_poll": polling_manager.next_poll_time.isoformat() if polling_manager.next_poll_time else None
     }
 
+@get("/health")
+async def health_check() -> dict:
+    """Minimal health check for keep-alive services (e.g., Render.com)."""
+    return {"status": "ok"}
+
+@get("/stats")
+async def get_stats() -> dict:
+    """Comprehensive service status report."""
+    bot_operational = False
+    try:
+        if bot.session and not bot.session.closed:
+            bot_operational = True
+    except Exception:
+        pass
+
+    return {
+        "services": {
+            "web": {
+                "status": "operational",
+                "message": "Litestar is active"
+            },
+            "bot": {
+                "status": "operational" if bot_operational else "degraded",
+                "message": "Aiogram polling is active" if bot_operational else "Bot session closed or inactive"
+            },
+            "poller": {
+                "status": "operational" if polling_manager.is_running else "stopped",
+                "last_poll": polling_manager.last_poll_status,
+                "seconds_until_next": polling_manager.get_seconds_remaining()
+            }
+        },
+        "timestamp": datetime.now().isoformat()
+    }
+
 from src.bot.notifier import dp, bot
 from aiogram import Bot
 
@@ -152,7 +189,15 @@ template_config = TemplateConfig(
 )
 
 app = Litestar(
-    route_handlers=[index, filter_products, product_detail, get_poll_status, stream_new_products],
+    route_handlers=[
+        index, 
+        filter_products, 
+        product_detail, 
+        get_poll_status, 
+        stream_new_products, 
+        health_check, 
+        get_stats
+    ],
     on_startup=[start_polling_engine],
     on_shutdown=[stop_polling_engine],
     template_config=template_config,
