@@ -227,7 +227,6 @@ async def broadcast_listing(product: Product):
 
     builder = InlineKeyboardBuilder()
     builder.row(
-        types.InlineKeyboardButton(text="💬 INSTANT CONTACT", url=contact_url),
         types.InlineKeyboardButton(text="🖥️ GENIE DASHBOARD", url=dashboard_url)
     )
 
