@@ -15,47 +15,43 @@ class OLXFetcher:
     def __init__(self):
         self.base_url = str(settings.API_URL)
         self.params = settings.DEFAULT_PARAMS
-        # Base headers - User-Agent will be rotated per request
+        # Simplified headers to match curl/7.81.0 which works locally
         self.base_headers = {
-            "Accept": "application/json, text/plain, */*",
+            "User-Agent": "curl/7.81.0",
+            "Accept": "*/*",
             "Accept-Language": "en-US,en;q=0.9",
-            "Accept-Encoding": "gzip, deflate, br",
             "Referer": "https://www.olx.in/",
             "Origin": "https://www.olx.in",
-            "Sec-Fetch-Dest": "empty",
-            "Sec-Fetch-Mode": "cors",
-            "Sec-Fetch-Site": "same-site",
-            "Pragma": "no-cache",
-            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
         }
 
     async def fetch_listings(self) -> List[dict]:
-        """Fetches raw listings using optimized httpx (HTTP/1.1) and rotating UA."""
+        """Fetches raw listings using lightweight headers and rotating User-Agents."""
         headers = self.base_headers.copy()
         headers["User-Agent"] = get_random_user_agent()
         
         async with httpx.AsyncClient(
             http2=False, 
-            timeout=60.0, 
+            timeout=30.0, 
             headers=headers,
             follow_redirects=True
         ) as client:
             for attempt in range(3):
                 try:
-                    logger.info(f"Attempting fetch (httpx) - Attempt {attempt + 1}")
+                    logger.info(f"Attempting fetch (Genie Light) - Attempt {attempt + 1}")
                     response = await client.get(self.base_url, params=self.params)
                     
                     if response.status_code == 403:
-                        logger.warning(f"403 Forbidden. Throttled or detected. Attempt {attempt + 1}")
-                        await asyncio.sleep(15 * (attempt + 1))
+                        logger.warning(f"403 Forbidden. Throttled. Attempt {attempt + 1}")
+                        await asyncio.sleep(10 * (attempt + 1))
                         continue
                         
                     response.raise_for_status()
                     data = response.json()
                     return data.get("data", [])
-                except httpx.ReadTimeout:
-                    logger.warning(f"ReadTimeout. Server is slow. Attempt {attempt + 1}")
-                    await asyncio.sleep(10)
+                except (httpx.ReadTimeout, httpx.ConnectTimeout):
+                    logger.warning(f"Timeout. Server is slow. Attempt {attempt + 1}")
+                    await asyncio.sleep(5)
                 except Exception as e:
                     logger.error(f"Error on attempt {attempt + 1}: {type(e).__name__} - {e}")
                     if attempt == 2: return []

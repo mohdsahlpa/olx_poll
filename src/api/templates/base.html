@@ -89,19 +89,22 @@
 
         // --- Genie Heartbeat (Synchronized Polling) ---
         (function() {
-            let timeLeft = 0;
-            
+            let timeLeft = -1; // Start at -1 to prevent immediate firing before sync
+            let isSyncing = false;
+
             // Centralized refresh function
-            window.refreshFeed = async function() {
+            window.refreshFeed = function() {
                 console.log("Genie: Discovery Signal Received. Syncing Feed...");
                 const productList = document.getElementById('product-list');
-                if (productList) {
+                if (productList && window.htmx) {
                     htmx.trigger(productList, 'refresh-feed');
                 }
-                await syncWithServer();
+                syncWithServer();
             };
 
             async function syncWithServer() {
+                if (isSyncing) return;
+                isSyncing = true;
                 try {
                     const response = await fetch('/api/poll-status');
                     const data = await response.json();
@@ -109,13 +112,19 @@
                     console.log("Genie: Heartbeat Synced. Next poll in " + timeLeft + "s");
                 } catch (e) {
                     console.error("Genie: Heartbeat sync failed", e);
+                } finally {
+                    isSyncing = false;
                 }
             }
 
             function updateUI() {
                 const displays = document.querySelectorAll('.countdown-display');
-                
-                if (timeLeft <= 0) {
+
+                if (timeLeft < 0) return; // Wait for first sync
+
+                if (timeLeft === 0) {
+                    // Prevent multiple fires while waiting for server to update
+                    timeLeft = -1; 
                     window.refreshFeed();
                 } else {
                     timeLeft--;
@@ -123,7 +132,7 @@
 
                 const mins = Math.floor(timeLeft / 60);
                 const secs = timeLeft % 60;
-                const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`;
+                const timeStr = (timeLeft < 0) ? "--:--" : `${mins}:${secs.toString().padStart(2, '0')}`;
                 
                 displays.forEach(el => {
                     el.textContent = timeStr;
