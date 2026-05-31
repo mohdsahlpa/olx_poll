@@ -43,8 +43,8 @@ class Settings(BaseSettings):
         # Fallback to manual env var or local loopback
         return os.getenv("BASE_URL", "http://127.0.0.1:8000").rstrip("/")
     
-    # Secure access: Heart emoji access key
-    BOT_PASSWORD: str = "❤️" 
+    # Secure access: Password key
+    BOT_PASSWORD: str = "idontknow" 
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
