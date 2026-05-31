@@ -13,7 +13,8 @@ if __name__ == "__main__":
     # Binding to 0.0.0.0 is mandatory for production environments
     # but we can use 127.0.0.1 for local dev if preferred.
     # On Render, 0.0.0.0 is required.
-    host = os.getenv("HOST", "0.0.0.0")
+    default_host = "127.0.0.1" if os.name == "nt" else "0.0.0.0"
+    host = os.getenv("HOST", default_host)
     
     print(f"\n--- OLX GENIE PRODUCTION ENGINE ---")
     print(f"Binding: {host}:{port}")

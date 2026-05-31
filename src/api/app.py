@@ -52,14 +52,18 @@ async def fetch_and_normalize(params: Dict[str, str]) -> List[Product]:
 async def index() -> Template:
     # Baseline settings from config
     params = settings.DEFAULT_PARAMS.copy()
-    products = await fetch_and_normalize(params)
-    return Template(template_name="index.html", context={"products": products, "params": params})
+    # RETURN IMMEDIATELY: Let HTMX fetch the products asynchronously to prevent page lag
+    return Template(template_name="index.html", context={"products": [], "params": params})
 
 @get("/filter")
 async def filter_products(request: Request) -> Template:
     # Use request params directly, which include query, location, price_min, category, size, etc.
     params = request.query_params
-    products = await fetch_and_normalize(params)
+    try:
+        products = await fetch_and_normalize(params)
+    except Exception as e:
+        logger.error(f"Filter failed: {e}")
+        products = []
     return Template(template_name="partials/product_list.html", context={"products": products})
 
 @get("/product/{product_id:str}")
@@ -171,13 +175,31 @@ async def set_bot_branding(bot: Bot):
 
 from src.core.database import init_db
 
+async def safe_bot_polling():
+    """Starts the bot polling while gracefully handling conflicts (e.g., prod instance running)."""
+    if os.getenv("DISABLE_BOT", "false").lower() == "true":
+        logger.info("Bot: Locally disabled via DISABLE_BOT env var.")
+        return
+
+    from aiogram.exceptions import TelegramConflictError
+    logger.info("Bot: Attempting to start polling...")
+    try:
+        # aiogram 3.x dispatcher polling has its own retry loop. 
+        # We can't easily break out of it if it hits a conflict, but we can 
+        # warn the user more clearly.
+        await dp.start_polling(bot, handle_signals=False)
+    except TelegramConflictError:
+        logger.warning("Bot Conflict: Another instance is already running (likely Production). Local bot polling disabled.")
+    except Exception as e:
+        logger.error(f"Bot Error: {e}")
+
 async def start_polling_engine(app: Litestar) -> None:
     # Ensure database tables are created
     await init_db()
     polling_manager.start()
     # Set branding and start bot polling in background
     await set_bot_branding(bot)
-    asyncio.create_task(dp.start_polling(bot))
+    asyncio.create_task(safe_bot_polling())
 
 async def stop_polling_engine(app: Litestar) -> None:
     await polling_manager.stop()

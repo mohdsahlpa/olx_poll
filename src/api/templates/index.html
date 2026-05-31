@@ -35,8 +35,10 @@
 
 <div id="product-list" 
      hx-get="/filter" 
-     hx-trigger="refresh-feed from:body"
+     hx-trigger="load, refresh-feed from:body"
      class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-12">
-    {% include "partials/product_list.html" %}
+    <div class="col-span-full py-20 text-center">
+        <div class="inline-block animate-pulse text-xs uppercase tracking-widest text-gray-400 font-bold">Summoning listings...</div>
+    </div>
 </div>
 {% endblock %}

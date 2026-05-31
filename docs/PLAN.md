@@ -43,3 +43,5 @@ Goal: Reliable synchronization engine.
 
 ## Phase 4: Resilience & Monitoring (In Progress)
 - [x] Implementation of `/health` and `/stats` endpoints for Render.com keep-alive.
+- [x] Asynchronous dashboard loading via HTMX to prevent local/prod lag.
+- [x] Graceful `TelegramConflictError` handling for multi-instance safety.

@@ -19,3 +19,5 @@
 | Branding | ✅ Done | 2026-05-30 | Bot profile and onboarding updated |
 | Deliverable v0.1.0 | ✅ Done | 2026-05-30 | Stable polling core complete |
 | Health Monitoring | ✅ Done | 2026-05-31 | Added /health and /stats for Render.com |
+| Local Stability | ✅ Done | 2026-05-31 | Fixed dashboard lag and bot conflicts |
+| API Resilience | ✅ Done | 2026-05-31 | Switched to curl-style headers for stability |
