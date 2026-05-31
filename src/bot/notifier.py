@@ -21,6 +21,17 @@ class GenieStates(StatesGroup):
     AWAITING_HEART_KEY = State()
     VERIFIED = State()
 
+# --- Helpers ---
+async def set_bot_commands(bot: Bot):
+    """Sets the bot's command menu."""
+    commands = [
+        types.BotCommand(command="start", description="Unlock & start the Genie"),
+        types.BotCommand(command="status", description="Check system operational health"),
+        types.BotCommand(command="help", description="How to use Olx Genie")
+    ]
+    await bot.set_my_commands(commands)
+    logger.info("Bot commands successfully registered.")
+
 # --- Template Engine ---
 template_env = Environment(
     loader=FileSystemLoader(os.path.join(os.path.dirname(__file__), "templates")),
@@ -110,6 +121,49 @@ async def handle_subscription(callback: types.CallbackQuery):
     await callback.answer(f"Alerts are now {status}.")
     await callback.message.edit_text(f"✅ <b>Genie Status: {status}</b>", parse_mode=ParseMode.HTML)
 
+@dp.message(Command("status"))
+async def cmd_status(message: types.Message):
+    """Report system status to the user."""
+    from src.core.polling_manager import polling_manager
+    from src.core.discovery_filter import discovery_filter
+    
+    # Get local subscription status
+    async with async_session() as session:
+        stmt = select(Subscriber).where(Subscriber.chat_id == message.chat.id)
+        result = await session.execute(stmt)
+        user = result.scalar_one_or_none()
+        
+        is_ver = user.is_verified if user else False
+        is_sub = user.is_subscribed if user else False
+
+    status_text = (
+        "<b>🧞‍♂️ Genie System Status</b>\n\n"
+        f"<b>Engine:</b> {'🟢 Running' if polling_manager.is_running else '🔴 Stopped'}\n"
+        f"<b>Cache:</b> {len(discovery_filter._cache)} items indexed\n"
+        f"<b>Last Poll:</b> {polling_manager.last_poll_status}\n\n"
+        f"<b>Your Access:</b> {'✅ Verified' if is_ver else '❌ Unverified'}\n"
+        f"<b>Your Alerts:</b> {'🔔 Active' if is_sub else '🔕 Muted'}\n"
+    )
+    
+    await message.answer(status_text, parse_mode=ParseMode.HTML)
+
+@dp.message(Command("help"))
+async def cmd_help(message: types.Message):
+    """Show help information."""
+    help_text = (
+        "<b>🧞‍♂️ Olx Genie Help</b>\n\n"
+        "I am an automated intelligence assistant that polls OLX.in for new listings.\n\n"
+        "<b>Commands:</b>\n"
+        "/start - Authenticate & configure alerts\n"
+        "/status - Check engine & subscription health\n"
+        "/help - Show this message\n\n"
+        "<b>Access:</b>\n"
+        "Send the password to unlock me. Once verified, you can subscribe to real-time alerts.\n\n"
+        "<b>Discovery:</b>\n"
+        "I only notify you about items posted in the <b>last 30 minutes</b> to ensure you only see fresh deals."
+    )
+    await message.answer(help_text, parse_mode=ParseMode.HTML)
+
 from datetime import datetime, timezone
 
 # --- Notification Logic ---
@@ -139,6 +193,7 @@ async def broadcast_listing(product: Product):
 
     for chat_id in subscriber_ids:
         try:
+            logger.info(f"Broadcasting to {chat_id}: {product.title}")
             if product.image_url:
                 await bot.send_photo(
                     chat_id=chat_id, 
@@ -154,5 +209,6 @@ async def broadcast_listing(product: Product):
                     reply_markup=builder.as_markup(),
                     parse_mode=ParseMode.HTML
                 )
+            logger.info(f"Broadcast success for {chat_id}")
         except Exception as e:
             logger.error(f"Broadcast failed for {chat_id}: {e}", extra={"chat_id": chat_id, "product_id": product.id})

@@ -159,7 +159,7 @@ async def get_stats() -> dict:
         "timestamp": datetime.now().isoformat()
     }
 
-from src.bot.notifier import dp, bot
+from src.bot.notifier import dp, bot, set_bot_commands
 from aiogram import Bot
 
 async def set_bot_branding(bot: Bot):
@@ -175,7 +175,9 @@ async def set_bot_branding(bot: Bot):
         await bot.set_my_short_description(
             "Your private OLX intelligence assistant. ❤️"
         )
-        logger.info("Bot branding successfully updated.")
+        # Register the "/" command menu
+        await set_bot_commands(bot)
+        logger.info("Bot branding and commands successfully updated.")
     except Exception as e:
         logger.error(f"Failed to set bot branding: {e}")
 
