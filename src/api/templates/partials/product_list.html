@@ -36,7 +36,7 @@
             </div>
             <div class="flex items-center gap-1.5">
                 <svg class="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                <span class="text-[12px] text-gray-500 font-extrabold uppercase tracking-tight">{{ product.created_at.strftime('%d %b • %H:%M') }}</span>
+                <span class="text-[12px] text-gray-500 font-extrabold uppercase tracking-tight">{{ product.formatted_time }}</span>
             </div>
         </div>
     </div>

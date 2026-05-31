@@ -82,7 +82,8 @@ class StrategyBPoller:
             return []
 
         new_products = []
-        now = datetime.utcnow()
+        from datetime import timezone
+        now = datetime.now(timezone.utc)
         discovery_window = now - timedelta(minutes=30)
 
         async with async_session() as session:

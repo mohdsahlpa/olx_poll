@@ -4,6 +4,6 @@
 💰 <code>{{ product.price.display }}</code>
 
 📍 {{ product.location }}, {{ product.city }}
-🕒 {{ product.created_at.strftime('%H:%M • %d %b') }}
+🕒 {{ product.formatted_time }}
 
 🔗 <a href="{{ base_url }}/product/{{ product.id }}">VIEW IN GENIE DASHBOARD</a>

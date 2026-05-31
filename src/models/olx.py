@@ -32,8 +32,19 @@ class Product(BaseModel):
     favorite_count: int = 0
     
     @property
-    def brand(self) -> str:
-        return self.parameters.get("make", "Generic")
+    def ist_created_at(self) -> datetime:
+        """Returns the creation time in Indian Standard Time (UTC+5:30)."""
+        from datetime import timezone, timedelta
+        ist_offset = timedelta(hours=5, minutes=30)
+        created = self.created_at
+        if created.tzinfo is None:
+            created = created.replace(tzinfo=timezone.utc)
+        return created.astimezone(timezone(ist_offset))
+
+    @property
+    def formatted_time(self) -> str:
+        """Standard display format for IST time."""
+        return self.ist_created_at.strftime('%H:%M • %d %b')
 
     @property
     def is_new(self) -> bool:
@@ -76,6 +87,14 @@ class Product(BaseModel):
         # Parameters (Minor details)
         params = {p.get("key"): p.get("formatted_value") for p in data.get("parameters", []) if p.get("key")}
 
+        from datetime import timezone
+        
+        # Parse ISO string and ensure it's UTC aware
+        created_at_raw = data.get("created_at", datetime.now(timezone.utc).isoformat())
+        created_at = datetime.fromisoformat(created_at_raw.replace("Z", "+00:00"))
+        if created_at.tzinfo is None:
+            created_at = created_at.replace(tzinfo=timezone.utc)
+
         return cls(
             id=item_id,
             external_id=item_id,
@@ -88,7 +107,7 @@ class Product(BaseModel):
             url=url,
             image_url=image_url,
             all_images=all_images,
-            created_at=datetime.fromisoformat(data.get("created_at", datetime.utcnow().isoformat()).replace("Z", "+00:00")),
+            created_at=created_at,
             seller_name=data.get("user_name"),
             user_type=data.get("user_type"),
             is_verified_user=data.get("is_kyc_verified_user", False),

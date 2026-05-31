@@ -96,7 +96,8 @@ async def show_subscription_menu(message: types.Message):
 @dp.callback_query(GenieStates.VERIFIED, F.data.startswith("sub_"))
 async def handle_subscription(callback: types.CallbackQuery):
     is_sub = callback.data == "sub_true"
-    now = datetime.utcnow()
+    from datetime import timezone
+    now = datetime.now(timezone.utc)
     async with async_session() as session:
         await session.execute(
             update(Subscriber)
@@ -109,7 +110,7 @@ async def handle_subscription(callback: types.CallbackQuery):
     await callback.answer(f"Alerts are now {status}.")
     await callback.message.edit_text(f"✅ <b>Genie Status: {status}</b>", parse_mode=ParseMode.HTML)
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 # --- Notification Logic ---
 
@@ -121,7 +122,7 @@ async def broadcast_listing(product: Product):
         # Since product discovery is 'now', we check if subscribed_at is present and before now.
         stmt = select(Subscriber.chat_id).where(
             Subscriber.is_subscribed == True,
-            Subscriber.subscribed_at <= datetime.utcnow() # Safety boundary
+            Subscriber.subscribed_at <= datetime.now(timezone.utc) # Safety boundary
         )
         result = await session.execute(stmt)
         subscriber_ids = result.scalars().all()
