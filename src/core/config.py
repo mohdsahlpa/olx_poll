@@ -36,12 +36,18 @@ class Settings(BaseSettings):
 
     @property
     def BASE_URL(self) -> str:
-        # Check if running on Render
+        # 1. Manual override (Highest priority for custom domains)
+        manual_url = os.getenv("BASE_URL")
+        if manual_url:
+            return manual_url.rstrip("/")
+            
+        # 2. Render automatic URL
         render_url = os.getenv("RENDER_EXTERNAL_URL")
         if render_url:
             return render_url.rstrip("/")
-        # Fallback to manual env var or local loopback
-        return os.getenv("BASE_URL", "http://127.0.0.1:8000").rstrip("/")
+            
+        # 3. Local fallback
+        return "http://127.0.0.1:8000"
     
     # Secure access: Password key
     BOT_PASSWORD: str = "idontknow" 
