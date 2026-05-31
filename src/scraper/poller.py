@@ -17,45 +17,36 @@ class OLXFetcher:
     def __init__(self):
         self.base_url = str(settings.API_URL)
         self.params = settings.DEFAULT_PARAMS
-        # NEW: Error tracking for header rotation strategy
-        self.consecutive_errors = 0
-
-    async def fetch_listings(self) -> List[dict]:
-        """Fetches raw listings using Browser Fingerprint Mimicry (Stealth Mode)."""
-        profile = get_stealth_profile()
-        
-        headers = {
-            "User-Agent": profile["user_agent"],
+        # Minimalist high-trust headers
+        self.headers = {
+            "User-Agent": "curl/7.81.0",
             "Accept": "*/*",
-            "Accept-Language": "en-US,en;q=0.5",
-            "Referer": "https://www.olx.in/",
-            "Origin": "https://www.olx.in",
             "Connection": "keep-alive",
         }
 
+    async def fetch_listings(self) -> List[dict]:
+        """Fetches raw listings using a high-trust minimalist strategy."""
         async with httpx.AsyncClient(
-            http2=False, # HTTP/1.1 is safer against TLS fingerprinting in simple scripts
+            http2=False, # HTTP/1.1 is critical for stability here
             timeout=30.0, 
-            headers=headers,
+            headers=self.headers,
             follow_redirects=True
         ) as client:
             for attempt in range(3):
                 try:
-                    logger.info(f"Attempting fetch (Stealth {profile['platform']}) - Attempt {attempt + 1}")
+                    logger.info(f"Attempting fetch (Trust Minimal) - Attempt {attempt + 1}")
                     response = await client.get(self.base_url, params=self.params)
                     
                     if response.status_code == 403:
-                        self.consecutive_errors += 1
-                        logger.warning(f"403 Forbidden. Throttled. Strategy: Waiting {20 * self.consecutive_errors}s")
-                        await asyncio.sleep(20 * self.consecutive_errors)
+                        logger.warning(f"403 Forbidden. Throttled. Strategy: Waiting {30 * (attempt + 1)}s")
+                        await asyncio.sleep(30 * (attempt + 1))
                         continue
                         
                     response.raise_for_status()
-                    self.consecutive_errors = 0 # Reset on success
                     data = response.json()
                     return data.get("data", [])
-                except (httpx.ReadTimeout, httpx.ConnectTimeout):
-                    logger.warning(f"Timeout. Server is slow. Attempt {attempt + 1}")
+                except (httpx.ReadTimeout, httpx.ConnectTimeout, httpx.ReadError):
+                    logger.warning(f"Network error (Reset/Timeout). Attempt {attempt + 1}")
                     await asyncio.sleep(5)
                 except Exception as e:
                     logger.error(f"Error on attempt {attempt + 1}: {type(e).__name__} - {e}")
