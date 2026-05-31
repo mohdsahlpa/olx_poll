@@ -82,8 +82,11 @@ async def handle_subscription(callback: types.CallbackQuery):
     await callback.answer(f"Alerts are now {status}.")
     await callback.message.edit_text(f"✅ <b>Genie Status: {status}</b>", parse_mode=ParseMode.HTML)
 
+from src.core.utils import retry_async
+
 # --- Notification Logic ---
 
+@retry_async(retries=3, delay=2.0)
 async def broadcast_listing(product: Product):
     """Send a new product to all active subscribers with an Instant Contact button."""
     async with async_session() as session:

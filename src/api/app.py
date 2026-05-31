@@ -1,5 +1,11 @@
-from litestar import Litestar, get, Request, route
+from litestar import Litestar, get, Request, route, Response
 from litestar.response import Template, ServerSentEvent
+from litestar.status_codes import HTTP_204_NO_CONTENT
+
+@get("/favicon.ico")
+async def favicon() -> Response:
+    """Silence favicon 404 noise."""
+    return Response(content=b"", status_code=HTTP_204_NO_CONTENT)
 from litestar.template.config import TemplateConfig
 from litestar.plugins.jinja import JinjaTemplateEngine
 from litestar.exceptions import NotFoundException
@@ -218,7 +224,8 @@ app = Litestar(
         get_poll_status, 
         stream_new_products, 
         health_check, 
-        get_stats
+        get_stats,
+        favicon
     ],
     on_startup=[start_polling_engine],
     on_shutdown=[stop_polling_engine],
