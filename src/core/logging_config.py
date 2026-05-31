@@ -1,22 +1,49 @@
 import logging
-import sys
-from src.core.config import settings
+import json
+from datetime import datetime
 
-def setup_logging():
+class JsonFormatter(logging.Formatter):
     """
-    Configures centralized logging for the application.
+    Standard JSON formatter for structured logging.
+    Transforms log records into machine-readable JSON objects.
     """
-    logging.basicConfig(
-        level=settings.LOG_LEVEL.upper(),
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        handlers=[
-            logging.StreamHandler(sys.stdout),
-            logging.FileHandler("olx_bot.log", encoding="utf-8")
-        ]
-    )
+    def format(self, record: logging.LogRecord) -> str:
+        log_object = {
+            "timestamp": datetime.fromtimestamp(record.created).isoformat(),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+            "module": record.module,
+            "funcName": record.funcName,
+        }
+        
+        # Include exception info if present
+        if record.exc_info:
+            log_object["exception"] = self.formatException(record.exc_info)
+        
+        # Include extra attributes if provided (via 'extra' kwarg in logger calls)
+        if hasattr(record, "extra"):
+            log_object.update(record.extra)
+            
+        return json.dumps(log_object)
+
+def setup_json_logging():
+    """Configures the root logger to use JSON formatting."""
+    root_logger = logging.getLogger()
     
-    # Set levels for third-party libraries
+    # Remove existing handlers to avoid double logging
+    for handler in root_logger.handlers[:]:
+        root_logger.removeHandler(handler)
+        
+    handler = logging.StreamHandler()
+    handler.setFormatter(JsonFormatter())
+    root_logger.addHandler(handler)
+    root_logger.setLevel(logging.INFO)
+    
+    # Silence third-party noise
     logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
     logging.getLogger("aiogram").setLevel(logging.INFO)
 
+# Global logger instance
 logger = logging.getLogger("olxbot")

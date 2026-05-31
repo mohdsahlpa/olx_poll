@@ -1,0 +1,9 @@
+<b>🆕 GENIE DISCOVERY</b>
+
+<b>{{ product.title }}</b>
+💰 <code>{{ product.price.display }}</code>
+
+📍 {{ product.location }}, {{ product.city }}
+🕒 {{ product.created_at.strftime('%H:%M • %d %b') }}
+
+🔗 <a href="{{ base_url }}/product/{{ product.id }}">VIEW IN GENIE DASHBOARD</a>

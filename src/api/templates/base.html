@@ -51,7 +51,10 @@
     <!-- Main Layout -->
     <div class="flex flex-col lg:flex-row min-h-screen">
         <!-- SSE Signal listener (Hidden) -->
-        <div style="display:none;" sse-swap="refresh" hx-trigger="sse:refresh" hx-on:htmx:after-settle="window.refreshFeed()"></div>
+        <div style="display:none;" 
+             sse-swap="message" 
+             hx-trigger="sse:message" 
+             hx-on:htmx:after-settle="window.handleDiscovery(event.detail.data)"></div>
 
         <!-- Main Content -->
         <main class="flex-1 px-6 py-8">
@@ -92,9 +95,51 @@
             let timeLeft = -1; // Start at -1 to prevent immediate firing before sync
             let isSyncing = false;
 
-            // Centralized refresh function
+            // Handle rich discovery payloads from SSE
+            window.handleDiscovery = function(data) {
+                try {
+                    const product = JSON.parse(data);
+                    console.log("Genie Discovery:", product.title);
+                    
+                    const list = document.getElementById('product-list');
+                    if (!list) return;
+
+                    // Create new product card HTML (Matching partials/product_list.html)
+                    const card = document.createElement('div');
+                    card.className = "group animate-in fade-in slide-in-from-top-4 duration-1000";
+                    card.innerHTML = `
+                        <a href="/product/${product.id}" class="block">
+                            <div class="relative aspect-[4/5] overflow-hidden bg-gray-50 rounded-2xl mb-4 border border-gray-100">
+                                ${product.image ? `<img src="${product.image}" alt="${product.title}" class="w-full h-full object-cover grayscale-[0.2] group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700">` : ''}
+                                <div class="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg shadow-sm border border-gray-100">
+                                    <span class="text-[10px] font-black tracking-tighter italic">NEW</span>
+                                </div>
+                            </div>
+                            <div class="space-y-1 px-1">
+                                <div class="flex justify-between items-start gap-2">
+                                    <h3 class="text-[13px] font-extrabold tracking-tight line-clamp-2 leading-[1.2]">${product.title}</h3>
+                                </div>
+                                <div class="flex items-center justify-between pt-1">
+                                    <span class="text-[11px] font-black tracking-tighter">${product.price}</span>
+                                    <span class="text-[9px] uppercase tracking-widest text-gray-400 font-bold">${product.time}</span>
+                                </div>
+                            </div>
+                        </a>
+                    `;
+                    
+                    // Prepend to list
+                    list.insertBefore(card, list.firstChild);
+                    
+                    // Sync heartbeat to reflect the discovery happened
+                    syncWithServer();
+                } catch (e) {
+                    console.error("Genie: Discovery payload error", e);
+                }
+            };
+
+            // Centralized refresh function (Legacy/Manual trigger)
             window.refreshFeed = function() {
-                console.log("Genie: Discovery Signal Received. Syncing Feed...");
+                console.log("Genie: Refresh Triggered.");
                 const productList = document.getElementById('product-list');
                 if (productList && window.htmx) {
                     htmx.trigger(productList, 'refresh-feed');

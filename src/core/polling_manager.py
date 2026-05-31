@@ -8,6 +8,7 @@ from src.core.logging_config import logger
 from src.scraper.poller import OLXFetcher, StrategyBPoller
 from src.core.config import settings
 from src.models.olx import Product
+from src.core.stealth_config import get_poisson_interval
 
 class PollingManager:
     def __init__(self):
@@ -34,10 +35,20 @@ class PollingManager:
             self.subscribers.remove(queue)
             logger.info(f"SSE: Client disconnected. Total subscribers: {len(self.subscribers)}")
 
-    async def _signal_refresh(self):
-        """Pushes a refresh signal to all connected SSE clients."""
+    async def _signal_discovery(self, product: Product):
+        """Pushes a rich JSON discovery payload to all connected SSE clients."""
+        import json
+        payload = {
+            "id": product.id,
+            "title": product.title,
+            "price": product.price.display,
+            "image": product.image_url,
+            "location": product.location,
+            "time": product.created_at.strftime('%H:%M')
+        }
+        data = json.dumps(payload)
         for queue in list(self.subscribers):
-            await queue.put("refresh")
+            await queue.put(data)
 
     def get_seconds_remaining(self) -> int:
         if not self.next_poll_time:
@@ -56,11 +67,11 @@ class PollingManager:
             logger.error(f"Genie Heartbeat: Initial warmup failed: {e}")
         
         while self.is_running:
-            # 2. Calculate next interval (15, 30, 60)
-            interval = random.choice([15, 30, 60])
+            # 2. Calculate next interval using Poisson Distribution around settings.POLL_INTERVAL
+            interval = get_poisson_interval(float(settings.POLL_INTERVAL))
             self.next_poll_time = datetime.now() + timedelta(seconds=interval)
             
-            logger.info(f"Genie Heartbeat: Next poll in {interval}s at {self.next_poll_time.strftime('%H:%M:%S')}")
+            logger.info(f"Genie Heartbeat: Next poll in {interval:.1f}s at {self.next_poll_time.strftime('%H:%M:%S')}")
             
             # 3. Wait for the interval
             await asyncio.sleep(interval)
@@ -69,18 +80,20 @@ class PollingManager:
             try:
                 new_products = await self.poller.poll()
                 if new_products:
-                    logger.info(f"Genie Heartbeat: Found {len(new_products)} new products. Broadcasting...")
+                    logger.info(f"Genie Heartbeat: Found {len(new_products)} new products within the 30m window.")
                     
-                    # Notify SSE clients (Single refresh trigger)
-                    await self._signal_refresh()
-                    
-                    # Notify Telegram Subscribers
+                    # Notify Telegram Subscribers (Pure Stream - Individual)
                     from src.bot.notifier import broadcast_listing
                     for product in new_products:
+                        # 1. Broadcast to Bot (Filtered by subscriber timestamp)
                         await broadcast_listing(product)
-                        await asyncio.sleep(1) # Safety
+                        
+                        # 2. Broadcast to SSE (Real-time Prepend)
+                        await self._signal_discovery(product)
+                        
+                        await asyncio.sleep(1.0) # Safety stagger
                 
-                self.last_poll_status = f"Last poll found {len(new_products)} items at {datetime.now().strftime('%H:%M:%S')}"
+                self.last_poll_status = f"Last poll discovered {len(new_products)} recent items at {datetime.now().strftime('%H:%M:%S')}"
             except Exception as e:
                 logger.error(f"Genie Heartbeat: Poll cycle failed: {e}")
 

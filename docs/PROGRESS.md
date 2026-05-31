@@ -21,3 +21,6 @@
 | Health Monitoring | ✅ Done | 2026-05-31 | Added /health and /stats for Render.com |
 | Local Stability | ✅ Done | 2026-05-31 | Fixed dashboard lag and bot conflicts |
 | API Resilience | ✅ Done | 2026-05-31 | Switched to curl-style headers for stability |
+| Phase 4 Final | ✅ Done | 2026-05-31 | Resilience & Monitoring complete |
+| Phase 5 Start | ✅ Done | 2026-05-31 | Initiating Genie Reforged rewrite |
+| Pure Stream Logic | ✅ Done | 2026-05-31 | 30m window + Subscription boundaries |

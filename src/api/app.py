@@ -14,15 +14,15 @@ from typing import Annotated
 from src.scraper.poller import OLXFetcher
 from src.models.olx import Product
 from src.core.config import settings
-from src.core.logging_config import setup_logging, logger
+from src.core.logging_config import setup_json_logging, logger
 import os
 import traceback
 import asyncio
 from datetime import datetime
 from typing import List, Dict, AsyncGenerator
 
-# Initialize logging at top level
-setup_logging()
+# Initialize structured JSON logging
+setup_json_logging()
 
 # Simple session cache
 _product_cache: List[Product] = []

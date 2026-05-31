@@ -11,42 +11,47 @@ from src.models.olx import Product
 
 from src.core.utils import get_random_user_agent
 
+from src.core.stealth_config import get_stealth_profile
+
 class OLXFetcher:
     def __init__(self):
         self.base_url = str(settings.API_URL)
         self.params = settings.DEFAULT_PARAMS
-        # Simplified headers to match curl/7.81.0 which works locally
-        self.base_headers = {
-            "User-Agent": "curl/7.81.0",
+        # NEW: Error tracking for header rotation strategy
+        self.consecutive_errors = 0
+
+    async def fetch_listings(self) -> List[dict]:
+        """Fetches raw listings using Browser Fingerprint Mimicry (Stealth Mode)."""
+        profile = get_stealth_profile()
+        
+        headers = {
+            "User-Agent": profile["user_agent"],
             "Accept": "*/*",
-            "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Language": "en-US,en;q=0.5",
             "Referer": "https://www.olx.in/",
             "Origin": "https://www.olx.in",
             "Connection": "keep-alive",
         }
 
-    async def fetch_listings(self) -> List[dict]:
-        """Fetches raw listings using lightweight headers and rotating User-Agents."""
-        headers = self.base_headers.copy()
-        headers["User-Agent"] = get_random_user_agent()
-        
         async with httpx.AsyncClient(
-            http2=False, 
+            http2=False, # HTTP/1.1 is safer against TLS fingerprinting in simple scripts
             timeout=30.0, 
             headers=headers,
             follow_redirects=True
         ) as client:
             for attempt in range(3):
                 try:
-                    logger.info(f"Attempting fetch (Genie Light) - Attempt {attempt + 1}")
+                    logger.info(f"Attempting fetch (Stealth {profile['platform']}) - Attempt {attempt + 1}")
                     response = await client.get(self.base_url, params=self.params)
                     
                     if response.status_code == 403:
-                        logger.warning(f"403 Forbidden. Throttled. Attempt {attempt + 1}")
-                        await asyncio.sleep(10 * (attempt + 1))
+                        self.consecutive_errors += 1
+                        logger.warning(f"403 Forbidden. Throttled. Strategy: Waiting {20 * self.consecutive_errors}s")
+                        await asyncio.sleep(20 * self.consecutive_errors)
                         continue
                         
                     response.raise_for_status()
+                    self.consecutive_errors = 0 # Reset on success
                     data = response.json()
                     return data.get("data", [])
                 except (httpx.ReadTimeout, httpx.ConnectTimeout):
@@ -58,31 +63,42 @@ class OLXFetcher:
                     await asyncio.sleep(5)
             return []
 
+from src.core.discovery_filter import discovery_filter
+
+from datetime import datetime, timedelta, timezone
+
 class StrategyBPoller:
-    """Implementation of Strategy B: High-Water Mark (ID Tracking)."""
+    """Implementation of Strategy B: High-Water Mark with a 30-minute Discovery Window."""
     
     def __init__(self, fetcher: OLXFetcher):
         self.fetcher = fetcher
 
     async def poll(self) -> List[Product]:
-        """Runs a single poll cycle and returns NEW normalized Product objects."""
+        """Runs a single poll cycle and returns NEW normalized Product objects within the 30m window."""
+        # Ensure filter is loaded
+        await discovery_filter.initialize()
+        
         raw_items = await self.fetcher.fetch_listings()
         if not raw_items:
             return []
 
         new_products = []
-        async with async_session() as session:
-            # 1. Get all seen IDs
-            stmt = select(SeenItem.external_id)
-            result = await session.execute(stmt)
-            seen_ids = set(result.scalars().all())
+        now = datetime.utcnow()
+        discovery_window = now - timedelta(minutes=30)
 
+        async with async_session() as session:
             for item_data in raw_items:
                 product = Product.from_olx_json(item_data)
-                if product.external_id not in seen_ids:
-                    new_products.append(product)
-                    
-                    # Store in database with metadata
+                
+                # Check if it's already in the 'seen' database/cache
+                is_unseen = not discovery_filter.is_seen(product.external_id)
+                
+                # Apply 30-minute rule: only consider it 'New' for discovery if posted recently
+                is_recent = product.created_at >= discovery_window
+                
+                if is_unseen:
+                    # Add to database regardless of age so we don't process it again
+                    discovery_filter.add(product.external_id)
                     session.add(SeenItem(
                         id=product.id,
                         external_id=product.external_id,
@@ -91,9 +107,16 @@ class StrategyBPoller:
                         image_url=product.image_url,
                         created_at=product.created_at
                     ))
+                    
+                    # Only return for broadcast/UI if it meets the recency requirement
+                    if is_recent:
+                        new_products.append(product)
             
             if new_products:
                 await session.commit()
-                logger.info(f"Detected {len(new_products)} new products.")
+                logger.info(f"Detected {len(new_products)} new products within the 30m window.")
+            elif any(discovery_filter.is_seen(Product.from_olx_json(i).external_id) for i in raw_items):
+                # Ensure we commit the 'seen' items even if they weren't in the window
+                await session.commit()
             
         return new_products

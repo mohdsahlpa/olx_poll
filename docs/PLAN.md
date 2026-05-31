@@ -41,7 +41,29 @@ Goal: Reliable synchronization engine.
 - [x] v0.1.0 — Polling Core Finalized.
 - [x] Stable continuous polling architecture verified.
 
-## Phase 4: Resilience & Monitoring (In Progress)
+## Phase 4: Resilience & Monitoring (Complete)
 - [x] Implementation of `/health` and `/stats` endpoints for Render.com keep-alive.
 - [x] Asynchronous dashboard loading via HTMX to prevent local/prod lag.
 - [x] Graceful `TelegramConflictError` handling for multi-instance safety.
+
+## Phase 5: Genie Reforged (In Progress)
+Goal: High-performance engine with stealth fetching and delta updates.
+
+### 1. Stealth Fetcher (Paused)
+- [x] Poisson Distribution logic for truly human jittered polling intervals.
+- [ ] Browser Fingerprint Mimicry (Refining detection bypass).
+
+### 2. Nexus Delta-UI (Complete)
+- [x] JSON-payload broadcasting over SSE (ID, Title, Price, Image).
+- [x] HTMX "Prepend" logic for single-item discovery updates with animations.
+- [x] In-memory DiscoveryFilter for $O(1)$ seen-item checks.
+
+### 3. Stateful Guardian (Bot) (In Progress)
+- [x] aiogram FSM for per-user session management.
+- [x] Jinja2 template-based HTML message rendering.
+- [x] Pure Stream Logic: Individual alerts filtered by subscription timestamp.
+- [x] 30-minute discovery window enforced.
+
+### 4. System Integrity
+- [ ] Write-Ahead Logging (WAL) for SQLite concurrency.
+- [ ] Structured JSON logging for production diagnostics.
