@@ -78,24 +78,34 @@ class PollingManager:
             
             # 4. Perform the poll
             try:
+                logger.info("Genie Trace: Starting poll cycle...")
                 new_products = await self.poller.poll()
+                
                 if new_products:
-                    logger.info(f"Genie Heartbeat: Found {len(new_products)} new products within the 30m window.")
+                    logger.info(f"Genie Trace: {len(new_products)} unseen products discovered.")
                     
                     # Notify Telegram Subscribers (Pure Stream - Individual)
                     from src.bot.notifier import broadcast_listing
                     for product in new_products:
-                        # 1. Broadcast to Bot (Filtered by subscriber timestamp)
+                        # 1. ALWAYS Broadcast to Bot (Pure Discovery)
+                        # The bot internally filters by subscriber timestamp.
+                        logger.info(f"Genie Trace: Handoff to bot for product {product.id}")
                         await broadcast_listing(product)
                         
-                        # 2. Broadcast to SSE (Real-time Prepend)
-                        await self._signal_discovery(product)
+                        # 2. ONLY Broadcast to SSE if within 30m window (for UI relevance)
+                        if product.is_new:
+                            logger.info(f"Genie Trace: Prepending {product.id} to UI (30m window).")
+                            await self._signal_discovery(product)
+                        else:
+                            logger.info(f"Genie Trace: Skipping UI prepend for {product.id} (Older than 30m).")
                         
                         await asyncio.sleep(1.0) # Safety stagger
+                else:
+                    logger.info("Genie Trace: No new products found in this cycle.")
                 
                 self.last_poll_status = f"Last poll discovered {len(new_products)} recent items at {datetime.now().strftime('%H:%M:%S')}"
             except Exception as e:
-                logger.error(f"Genie Heartbeat: Poll cycle failed: {e}")
+                logger.error(f"Genie Heartbeat: Poll cycle failed: {e}", exc_info=True)
 
     def start(self):
         if not self.is_running:

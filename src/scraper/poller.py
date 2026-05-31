@@ -108,13 +108,12 @@ class StrategyBPoller:
                         created_at=product.created_at
                     ))
                     
-                    # Only return for broadcast/UI if it meets the recency requirement
-                    if is_recent:
-                        new_products.append(product)
+                    # ALL unseen products are returned for bot processing
+                    new_products.append(product)
             
             if new_products:
                 await session.commit()
-                logger.info(f"Detected {len(new_products)} new products within the 30m window.")
+                logger.info(f"Detected {len(new_products)} previously unseen products.")
             elif any(discovery_filter.is_seen(Product.from_olx_json(i).external_id) for i in raw_items):
                 # Ensure we commit the 'seen' items even if they weren't in the window
                 await session.commit()
