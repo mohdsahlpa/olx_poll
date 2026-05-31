@@ -43,8 +43,8 @@ class Product(BaseModel):
 
     @property
     def formatted_time(self) -> str:
-        """Standard display format for IST time."""
-        return self.ist_created_at.strftime('%H:%M • %d %b')
+        """Standard display format for IST time in 12hr format."""
+        return self.ist_created_at.strftime('%I:%M %p • %d %b')
 
     @property
     def is_new(self) -> bool:

@@ -44,7 +44,7 @@ class PollingManager:
             "price": product.price.display,
             "image": product.image_url,
             "location": product.location,
-            "time": product.ist_created_at.strftime('%H:%M')
+            "time": product.ist_created_at.strftime('%I:%M %p')
         }
         data = json.dumps(payload)
         for queue in list(self.subscribers):
