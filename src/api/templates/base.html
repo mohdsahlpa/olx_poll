@@ -147,16 +147,27 @@
                 syncWithServer();
             };
 
-            async function syncWithServer() {
-                if (isSyncing) return;
+            let lastSyncTime = 0;
+            const MIN_SYNC_INTERVAL = 2000; // 2 seconds minimum between manual/auto syncs
+
+            async function syncWithServer(force = false) {
+                const now = Date.now();
+                if (!force && (isSyncing || (now - lastSyncTime < MIN_SYNC_INTERVAL))) return;
+                
                 isSyncing = true;
+                lastSyncTime = now;
                 try {
                     const response = await fetch('/api/poll-status');
                     const data = await response.json();
-                    timeLeft = data.seconds_remaining;
+                    
+                    // If server says 0, it means poller is currently working. 
+                    // We set a small internal delay to avoid immediate re-syncing.
+                    timeLeft = data.seconds_remaining <= 0 ? 5 : data.seconds_remaining;
+                    
                     console.log("Genie: Heartbeat Synced. Next poll in " + timeLeft + "s");
                 } catch (e) {
                     console.error("Genie: Heartbeat sync failed", e);
+                    timeLeft = 30; // Fallback on error
                 } finally {
                     isSyncing = false;
                 }
@@ -167,8 +178,8 @@
 
                 if (timeLeft < 0) return; // Wait for first sync
 
-                if (timeLeft === 0) {
-                    // Prevent multiple fires while waiting for server to update
+                if (timeLeft <= 0) {
+                    // Prevent multiple fires
                     timeLeft = -1; 
                     window.refreshFeed();
                 } else {

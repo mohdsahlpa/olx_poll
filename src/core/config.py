@@ -10,9 +10,9 @@ class Settings(BaseSettings):
     # Default search parameters for OLX
     DEFAULT_PARAMS: dict = {
         "category": "1453",
-        "facet_limit": "1000",
+        "facet_limit": "100",
         "location": "2001160",
-        "location_facet_limit": "40",
+        "location_facet_limit": "20",
         "make": "iphone",
         "platform": "web-desktop",
         "price_min": "25000",
@@ -21,7 +21,6 @@ class Settings(BaseSettings):
         "relaxedFilters": "true",
         "size": "40",
         "spellcheck": "true",
-        "user": "08760266372311145",
         "lang": "en-IN"
     }
 

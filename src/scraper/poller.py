@@ -17,29 +17,37 @@ class OLXFetcher:
     def __init__(self):
         self.base_url = str(settings.API_URL)
         self.params = settings.DEFAULT_PARAMS
-        # Minimalist high-trust headers
+        # Minimalist high-trust headers with explicit Host and no compression
         self.headers = {
+            "Host": "api.olx.in",
             "User-Agent": "curl/7.81.0",
             "Accept": "*/*",
-            "Connection": "keep-alive",
+            "Accept-Encoding": "identity",
+            "Connection": "close", # Force close to avoid stale gateway sessions
         }
 
     async def fetch_listings(self) -> List[dict]:
-        """Fetches raw listings using a high-trust minimalist strategy."""
+        """Fetches raw listings using a high-trust minimalist strategy with extended timeout."""
+        # Use fresh client per request to avoid gateway connection reuse issues
         async with httpx.AsyncClient(
-            http2=False, # HTTP/1.1 is critical for stability here
-            timeout=30.0, 
+            http2=False, 
+            timeout=60.0, # Increased for 504 resilience
             headers=self.headers,
             follow_redirects=True
         ) as client:
             for attempt in range(3):
                 try:
-                    logger.info(f"Attempting fetch (Trust Minimal) - Attempt {attempt + 1}")
+                    logger.info(f"Attempting fetch (Resilient Trust) - Attempt {attempt + 1}")
                     response = await client.get(self.base_url, params=self.params)
                     
                     if response.status_code == 403:
-                        logger.warning(f"403 Forbidden. Throttled. Strategy: Waiting {30 * (attempt + 1)}s")
-                        await asyncio.sleep(30 * (attempt + 1))
+                        logger.warning(f"403 Forbidden. Strategy: Long Sleep {60 * (attempt + 1)}s")
+                        await asyncio.sleep(60 * (attempt + 1))
+                        continue
+                    
+                    if response.status_code == 504:
+                        logger.warning(f"504 Gateway Timeout. Server is overloaded. Attempt {attempt + 1}")
+                        await asyncio.sleep(10)
                         continue
                         
                     response.raise_for_status()
