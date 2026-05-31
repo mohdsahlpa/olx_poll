@@ -49,8 +49,8 @@ class Settings(BaseSettings):
         # 3. Local fallback
         return "http://127.0.0.1:8000"
     
-    # Secure access: Password key
-    BOT_PASSWORD: str = "idontknow" 
+    # Secure access: Heart emoji access key
+    BOT_PASSWORD: str = "❤️" 
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
